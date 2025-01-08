@@ -1,85 +1,47 @@
 import math
+
+# from wpilib import DriverStation
+import navx
+import phoenix6 as ctre
+import rev
 import wpilib
-import wpimath.geometry
-import wpimath.kinematics
-import swervemodule
+import wpimath
+from wpimath import controller
+from wpimath import trajectory
+from wpimath.geometry import Translation2d, Rotation2d, Pose2d
+from wpimath.kinematics import SwerveDrive4Kinematics, SwerveModuleState, ChassisSpeeds, SwerveDrive4Odometry, \
+   SwerveModulePosition
 
-kMaxSpeed = 3.0
-kMAS = math.pi #kMaxAngleSpeed
+import robotcontainer
 
-class Drivetrain:
+def lratio(angle):
+    return((angle / math.pi) * -0.5)
 
-    def __init__(self) -> None:
+def ticks2rad(thingie):
+    return (thingie / 0.5) * math.pi
 
-        #Locations
-        self.fll = wpimath.geometry.Translation2d(0.381, 0.381) #temp values
-        self.frl = wpimath.geometry.Translation2d(0.381, -0.381) #temp values
-        self.bll = wpimath.geometry.Translation2d(-0.381, 0.381) #temp values
-        self.brl = wpimath.geometry.Translation2d(-0.381, -0.381) #temp values
+def deg2Rot2d(deg) -> Rotation2d:
+    SwerveModulePosition()
+    return Rotation2d(deg.value_as_double % 360 * (math.pi /100))
 
-        #Motors
-        self.fl = swervemodule.SwerveModule(1, 2, 0, 1, 2, 3)
-        self.fr = swervemodule.SwerveModule(3, 4, 4, 5, 6, 7)
-        self.bl = swervemodule.SwerveModule(5, 6, 8, 9, 10, 11)
-        self.br = swervemodule.SwerveModule(7, 8, 12, 13, 14, 15)
-
-        self.gyro = wpilib.AnalogGyro(0)
-
-        self.kinematics = wpimath.kinematics.SwerveDrive4Kinematics(
-            self.fll,
-            self.frl,
-            self.bll,
-            self.brl,
-        )
-
-        self.odometry = wpimath.kinematics.SwerveDrive4Odometry(
-            self.kinematics,
-            self.gyro.getRotation2d(),
-            (
-                self.fl.getPosition(),
-                self.fr.getPosition(),
-                self.bl.getPosition(),
-                self.br.getPosition(),
-            ),
-        )
-
-        self.gyro.reset()
-
-        def drive(
-                self,
-                xSpeed: float,
-                ySpeed: float,
-                rot:float,
-                fieldRelative: bool,
-                periodSeconds: float,
-        ) -> None:
-            swerveModuleStates = self.kinematics.toSwerveModuleStates(
-                wpimath.kinematics.ChassisSpeeds.discretize(
-                    (
-                wpimath.kinematics.ChassisSpeeds.fromFieldRelativeSpeeds(
-                    xSpeed, ySpeed, rot, self.gyro.getRotation2d()
-                )
-                if fieldRelative
-                else wpimath.kinematics.ChassisSpeeds(xSpeed, ySpeed, rot)
-            ),
-            periodSeconds,
-        )
+def getSwerveModPose(rotEnc: ctre.hardware.CANcoder, driveEnc: rev.SparkRelativeEncoder) -> SwerveModulePosition:
+    return SwerveModulePosition(
+        driveEnc.getPosition(),
+        Rotation2d(ticks2rad(rotEnc.get_absolute_position().value_as_double))
     )
-            wpimath.kinematics.SwerveDrive4Kinematics.desaturateWhelSpeeds(
-                swerveModuleStates, kMaxSpeed
-            )
-            self.fl.setDesiredState(swerveModuleStates[0])
-            self.fr.setDesiredState(swerveModuleStates[1])
-            self.bl.setDesiredStates(swerveModuleStates[2])
-            self.br.setDesiredStates(swerveModuleStates[3])
 
-    def updateOdomerty(self) -> None:
-        self.odometry.update(
-            self.gyro.getRotation2d(),
-            (
-                self.fl.getPosition(),
-                self.fr.getPosition(),
-                self.bl.getPosition(),
-                self.br.getPosition(),
-            ),
-        )
+class DriveTrain():
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.robotContainer = robotcontainer
+
+        self.blr = rev.CANSparkMax(1, rev.CANSparkMax.MotorType.kBrushless)
+        self.brr = rev.CANSparkMax(8, rev.CANSparkMax.MotorType.kBrushless)
+        self.flr = rev.CANSparkMax(3, rev.CANSparkMax.MotorType.kBrushless)
+        self.frr = rev.CANSparkMax(2, rev.CANSprakMax.MotorType.kBrushless)
+
+        self.bld = rev.CANSparkMax(7, rev.CANSparkMax.MotorType.kBrushless)
+        self.brd = rev.CANSparkMax(4, rev.CANSparkMax.MotorType.kBrushless)
+        self.fld = rev.CANSparkMax(6, rev.CANSparkMax.MotorType.kBrushless)
+        self.frd = rev.CANSparkMax(5, rev.CANSparkMax.MotorType.kBrushless)
