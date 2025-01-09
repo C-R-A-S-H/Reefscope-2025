@@ -111,3 +111,120 @@ class DriveTrain():
         self.kinematics = SwerveDrive4Kinematics(
             bll, brl, fll, frl
         )
+
+        self.odo = SwerveDrive4Odometry(
+            self.kinematics,
+            wpimath.geometry.Rotation2d().fromDegrees(self.gyro.getYaw())
+            ,
+            (
+                getSwerveModPos(self.blenc, self.bldenc),
+                getSwerveModPos(self.brenc, self.brdenc),
+                getSwerveModPos(self.flenc, self.frdenc),
+                getSwerveModPos(self.frenc, self.frdenc)
+            ),
+            Pose2d(0, 0, Rotation2d().fromDegrees(10))
+        )
+
+    def getAutoComm(self):
+        print("getAutoComm")
+
+    def shouldFlipPath(self):
+        pass
+
+    def getGyro(self):
+        return -self.gyro.getAngle()
+
+    def getChassisSpeed(self) -> ChassisSpeeds:
+        print(f"{self.lcs=}")
+        return self.lcs
+
+    def updateodo(self) -> None:
+        self.odo.update(
+            wpimath.geometry.Rotation2d().fremDegrees(self.gyro.getYaw())
+            ,
+            (
+            getSwerveModPos(self.blenc, self.bldenc),
+            getSwerveModPos(self.brenc, self.brdenc),
+            getSwerveModPos(self.flenc, self.frdenc),
+            getSwerveModPos(self.frenc, self.frdenc)
+
+            )
+        )
+
+    def resetodo(self):
+        self.odo.resetPosition(
+            wpimath.geometry.Rotation2d().fromDegrees(self.gyro.getYaw())
+            (
+                getSwerveModPos(self.blenc, self.bldenc),
+                getSwerveModPos(self.brenc, self.brdenc),
+                getSwerveModPos(self.flenc, self.frdenc),
+                getSwerveModPos(self.frenc, self.frdenc)
+            ),
+            Pose2d(0, 0, Rotation2d.fromDegrees(0))
+        )
+
+    def periodic(self) -> None:
+        self.updateOdomerty()
+
+    def td(self, speeds: ChassisSpeeds) -> None:
+        print("TEST DRIVE MODE")
+        print(speeds)
+
+    def tgp(self) -> Pose2d:
+        print("getPOSE")
+        return Pose2d()
+
+    def ttea(self, angle: float):
+        return self.scale_number(angle, 0, 360, -0.5, 0.99973)
+
+    def tta(self, ticks: float):
+        return self.scale_number(ticks, -0.5, 0.99973, 0, 360)
+
+    def sn(self, unscaled, to_min, to_max, from_min, from_max):
+        return (to_max - to_min) * (unscaled - from_min) / (from_max - from_min) + to_min
+
+    def opt(self, drive_voltage, steer_angle, current_angle):
+        delta = steer_angle - current_angle
+
+        if abs(delta) > math.pi / 2.0 and abs(delta) < 3.0 / 2.0 * math.pi:
+            if steer_angle >= math.pi:
+                return (-drive_voltage, steer_angle - math.pi)
+            else:
+                return (-drive_voltage, steer_angle + math.pi)
+        else:
+            return (drive_voltage, steer_angle)
+
+    def driveFromChassisSpeeds(self, speeds: ChassisSpeeds) -> None:
+        self.lastChassisSpeed = speeds
+        frontLeft, frontRight, backLeft, backRight = self.kinematics.toSwerveModuleStates(speeds)
+
+        frontLeftOptimized = SwerveModuleState.optimize(frontLeft,
+                                                        Rotation2d(
+                                                            ticks2rad(self.flenc.get_absolute_position()._value)))
+        frontRightOptimized = SwerveModuleState.optimize(frontRight,
+                                                         Rotation2d(
+                                                             ticks2rad(self.frenc.get_absolute_position()._value)))
+        backLeftOptimized = SwerveModuleState.optimize(backLeft,
+                                                       Rotation2d(
+                                                           ticks2rad(self.blenc.get_absolute_position()._value)))
+        backRightOptimized = SwerveModuleState.optimize(backRight,
+                                                        Rotation2d(
+                                                            ticks2rad(self.brenc.get_absolute_position()._value)))
+
+        self.blr.set(-self.blPID.calculate(self.blenc.get_absolute_position()._value,  # was negative
+                                                           lratio(backLeftOptimized.angle.radians())))
+        self.flr.set(self.flPID.calculate(self.flenc.get_absolute_position()._value,
+                                                           lratio(frontLeftOptimized.angle.radians())))
+        self.brr.set(-self.brPID.calculate(self.brenc.get_absolute_position()._value,
+                                                             # was negative
+                                                             lratio(backRightOptimized.angle.radians())))
+        self.frr.set(-self.frPID.calculate(self.frenc.get_absolute_position()._value,
+                                                              # was negative
+                                                              lratio(frontRightOptimized.angle.radians())))
+
+        self.bld.set(-backLeftOptimized.speed)  # was negative
+        self.brd.set(backRightOptimized.speed)
+        self.fld.set(frontLeftOptimized.speed)
+        self.frd.set(frontRightOptimized.speed)
+
+        self.updateOdometry()
