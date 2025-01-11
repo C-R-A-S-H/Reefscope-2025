@@ -24,7 +24,7 @@ def deg2Rot2d(deg) -> Rotation2d:
     SwerveModulePosition()
     return Rotation2d(deg.value_as_double % 360 * (math.pi /100))
 
-def getSwerveModPose(rotEnc: ctre.hardware.CANcoder, driveEnc: rev.RelativeEncoder) -> SwerveModulePosition:
+def getSwerveModPose(rotEnc: ctre.hardware.CANcoder, driveEnc: rev.SparkRelativeEncoder) -> SwerveModulePosition:
     return SwerveModulePosition(
         driveEnc.getPosition(),
         Rotation2d(ticks2rad(rotEnc.get_absolute_position().value_as_double))
@@ -36,15 +36,15 @@ class DriveTrain():
 
         self.robotContainer = robotcontainer
 
-        self.blr = rev.CANSparkMax(1, rev.CANSparkMax.MotorType.kBrushless)
-        self.brr = rev.CANSparkMax(8, rev.CANSparkMax.MotorType.kBrushless)
-        self.flr = rev.CANSparkMax(3, rev.CANSparkMax.MotorType.kBrushless)
-        self.frr = rev.CANSparkMax(2, rev.CANSprakMax.MotorType.kBrushless)
+        self.blr = rev.SparkMax(1, rev.SparkMax.MotorType.kBrushless)
+        self.brr = rev.SparkMax(8, rev.SparkMax.MotorType.kBrushless)
+        self.flr = rev.SparkMax(3, rev.SparkMax.MotorType.kBrushless)
+        self.frr = rev.SparkMax(2, rev.SparkMax.MotorType.kBrushless)
 
-        self.bld = rev.CANSparkMax(7, rev.CANSparkMax.MotorType.kBrushless)
-        self.brd = rev.CANSparkMax(4, rev.CANSparkMax.MotorType.kBrushless)
-        self.fld = rev.CANSparkMax(6, rev.CANSparkMax.MotorType.kBrushless)
-        self.frd = rev.CANSparkMax(5, rev.CANSparkMax.MotorType.kBrushless)
+        self.bld = rev.SparkMax(7, rev.SparkMax.MotorType.kBrushless)
+        self.brd = rev.SparkMax(4, rev.SparkMax.MotorType.kBrushless)
+        self.fld = rev.SparkMax(6, rev.SparkMax.MotorType.kBrushless)
+        self.frd = rev.SparkMax(5, rev.SparkMax.MotorType.kBrushless)
 
         self.blr.setOpenLoopRampRate(0.2)
         self.brr.setOpenLoopRampRate(0.2)
@@ -56,10 +56,10 @@ class DriveTrain():
         self.fld.setOpenLoopRampRate(0.2)
         self.frd.setOpenLoopRampRate(0.2)
 
-        self.bldenc = self.bld.getEncoder(rev.SparkMaxRelativeEncoder.Type.kHallSensor, 42)
-        self.brdenc = self.brd.getEncoder(rev.SparkMaxRelativeEncoder.Type.kHallSensor, 42)
-        self.fldenc = self.fld.getEncoder(rev.SparkMaxRelativeEncoder.Type.kHallSensor, 42)
-        self.frdenc = self.frd.getEncoder(rev.SparkMaxRelativeEncoder.Type.kHallSensor, 42)
+        self.bldenc = self.bld.getEncoder(rev.SparkRelativeEncoder.Type.kHallSensor, 42)
+        self.brdenc = self.brd.getEncoder(rev.SparkRelativeEncoder.Type.kHallSensor, 42)
+        self.fldenc = self.fld.getEncoder(rev.SparkRelativeEncoder.Type.kHallSensor, 42)
+        self.frdenc = self.frd.getEncoder(rev.SparkRelativeEncoder.Type.kHallSensor, 42)
 
         self.blenc = ctre.hardware.CANcoder(12)
         self.brenc = ctre.hardware.CANcoder(11)

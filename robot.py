@@ -21,7 +21,7 @@ class MyRobot(wpilib.TimedRobot):
 
     def __init__(self):
         super().__init__()
-        self.driver1 = wpilib.joystick(0)
+        self.driver1 = wpilib.Joystick(0)
         self.driver2 = wpilib.Joystick(1)
         self.toggle = True
         self.amp_toggle = False
