@@ -56,10 +56,14 @@ class DriveTrain():
         self.fld.setOpenLoopRampRate(0.2)
         self.frd.setOpenLoopRampRate(0.2)
 
-        self.bldenc = self.bld.getEncoder(rev.SparkRelativeEncoder.Type.kHallSensor, 42)
-        self.brdenc = self.brd.getEncoder(rev.SparkRelativeEncoder.Type.kHallSensor, 42)
-        self.fldenc = self.fld.getEncoder(rev.SparkRelativeEncoder.Type.kHallSensor, 42)
-        self.frdenc = self.frd.getEncoder(rev.SparkRelativeEncoder.Type.kHallSensor, 42)
+        # self.bldenc = self.bld.getEncoder(rev.SparkRelativeEncoder.Type.kHallSensor, 42)
+        # self.brdenc = self.brd.getEncoder(rev.SparkRelativeEncoder.Type.kHallSensor, 42)
+        # self.fldenc = self.fld.getEncoder(rev.SparkRelativeEncoder.Type.kHallSensor, 42)
+        # self.frdenc = self.frd.getEncoder(rev.SparkRelativeEncoder.Type.kHallSensor, 42)
+        self.bldenc = self.bld.getEncoder(rev.CANSparkEncoder.Type.kHallSensor, 42)
+        self.brdenc = self.brd.getEncoder(rev.CANSparkEncoder.Type.kHallSensor, 42)
+        self.fldenc = self.fld.getEncoder(rev.CANSparkEncoder.Type.kHallSensor, 42)
+        self.frdenc = self.frd.getEncoder(rev.CANSparkEncoder.Type.kHallSensor, 42)
 
         self.blenc = ctre.hardware.CANcoder(12)
         self.brenc = ctre.hardware.CANcoder(11)
