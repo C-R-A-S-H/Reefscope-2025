@@ -1,14 +1,15 @@
 import math
 from enum import auto, Enum
 
-import navx
-# from wpilib import DriverStation
-import phoenix6 as ctre
-import rev
-import wpilib
-import wpimath
+# import navx
+# # from wpilib import DriverStation
+# import phoenix6 as ctre
+# import rev
+# import wpilib
+
 from navx import AHRS
-from wpimath import controller
+
+import wpimath
 from wpimath import trajectory
 from wpimath.geometry import Translation2d, Rotation2d, Pose2d
 from wpimath.kinematics import SwerveDrive4Kinematics, SwerveModuleState, ChassisSpeeds, SwerveDrive4Odometry, \
@@ -45,7 +46,7 @@ class Drivetrain():
                                              self.get_swerve_module_positions(),
                                              Pose2d(0, 0, 0))
 
-        self.gyro = AHRS(AHRS.NavXComType.kMXP_SPI, 100)
+        self.gyro = AHRS(AHRS.NavXComType.kMXP_SPI, 50)
 
         self.gyro.enableLogging(True)
         self.gyro.reset()
@@ -56,7 +57,7 @@ class Drivetrain():
 
         self.target_velocity: ChassisSpeeds = ChassisSpeeds(0, 0, 0)
 
-        self.translation_pid_constraints = trajectory.TrapezoidProfile.Constraints(2, 4)
+        self.translation_pid_constraints = trajectory.TrapezoidProfile.Constraints(1, 1)
         self.translation_pid_kP = 4
         self.translation_pid_kI = 1
         self.translation_pid_kD = 0.3

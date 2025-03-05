@@ -1,19 +1,68 @@
 import math
 
 import wpilib
-import wpimath
 import wpilib.drive
+
+import wpimath
 import wpimath.filter
 import wpimath.controller
 
 from wpimath.kinematics import ChassisSpeeds
-from wpimath.geometry import Rotation2d
+from wpimath.geometry import Rotation2d, Pose2d
 
 import Components.drivetrain
 import Components.vision
-# import Components.claw
-# import Components.arm
-# import Components.elevator
+import Components.algae_grabber
+
+TAG_ORIGIN = Pose2d(-8.774, -4.032, Rotation2d.fromDegrees(0))
+
+TAG_LIST = [
+    Pose2d(wpimath.units.inchesToMeters(657.37), wpimath.units.inchesToMeters(25.80), Rotation2d.fromDegrees(126)),
+    Pose2d(wpimath.units.inchesToMeters(657.37), wpimath.units.inchesToMeters(291.20), Rotation2d.fromDegrees(234)),
+    Pose2d(wpimath.units.inchesToMeters(455.15), wpimath.units.inchesToMeters(317.15), Rotation2d.fromDegrees(270)),
+    Pose2d(wpimath.units.inchesToMeters(365.20), wpimath.units.inchesToMeters(241.64), Rotation2d.fromDegrees(0)),
+    Pose2d(wpimath.units.inchesToMeters(365.20), wpimath.units.inchesToMeters(75.39), Rotation2d.fromDegrees(0)),
+    Pose2d(wpimath.units.inchesToMeters(530.49), wpimath.units.inchesToMeters(130.17), Rotation2d.fromDegrees(300)),
+    Pose2d(wpimath.units.inchesToMeters(546.87), wpimath.units.inchesToMeters(158.50), Rotation2d.fromDegrees(0)),
+    Pose2d(wpimath.units.inchesToMeters(530.49), wpimath.units.inchesToMeters(186.83), Rotation2d.fromDegrees(60)),
+    Pose2d(wpimath.units.inchesToMeters(497.77), wpimath.units.inchesToMeters(186.83), Rotation2d.fromDegrees(120)),
+    Pose2d(wpimath.units.inchesToMeters(481.39), wpimath.units.inchesToMeters(158.50), Rotation2d.fromDegrees(180)),
+    Pose2d(wpimath.units.inchesToMeters(497.77), wpimath.units.inchesToMeters(130.17), Rotation2d.fromDegrees(240)),
+    Pose2d(wpimath.units.inchesToMeters(33.51), wpimath.units.inchesToMeters(25.80), Rotation2d.fromDegrees(54)),
+    Pose2d(wpimath.units.inchesToMeters(33.51), wpimath.units.inchesToMeters(291.20), Rotation2d.fromDegrees(306)),
+    Pose2d(wpimath.units.inchesToMeters(325.68), wpimath.units.inchesToMeters(241.64), Rotation2d.fromDegrees(180)),
+    Pose2d(wpimath.units.inchesToMeters(325.68), wpimath.units.inchesToMeters(75.39), Rotation2d.fromDegrees(180)),
+    Pose2d(wpimath.units.inchesToMeters(235.73), wpimath.units.inchesToMeters(-0.15), Rotation2d.fromDegrees(90)),
+    Pose2d(wpimath.units.inchesToMeters(160.39), wpimath.units.inchesToMeters(130.17), Rotation2d.fromDegrees(240)),
+    Pose2d(wpimath.units.inchesToMeters(144.00), wpimath.units.inchesToMeters(158.50), Rotation2d.fromDegrees(180)),
+    Pose2d(wpimath.units.inchesToMeters(160.39), wpimath.units.inchesToMeters(186.83), Rotation2d.fromDegrees(120)),
+    Pose2d(wpimath.units.inchesToMeters(193.10), wpimath.units.inchesToMeters(186.83), Rotation2d.fromDegrees(60)),
+    Pose2d(wpimath.units.inchesToMeters(209.49), wpimath.units.inchesToMeters(158.50), Rotation2d.fromDegrees(0)),
+    Pose2d(wpimath.units.inchesToMeters(193.10), wpimath.units.inchesToMeters(130.17), Rotation2d.fromDegrees(300))
+]
+# 657.37  25.80 126
+# 657.37 291.20 234
+# 455.15 317.15 270
+# 365.20 241.64   0
+# 365.20  75.39   0
+# 530.49 130.17 300
+# 546.87 158.50   0
+# 530.49 186.83  60
+# 497.77 186.83 120
+# 481.39 158.50 180
+# 497.77 130.17 240
+#  33.51  25.80  54
+#  33.51 291.20 306
+# 325.68 241.64 180
+# 325.68  75.39 180
+# 235.73  -0.15  90
+# 160.39 130.17 240
+# 144.00 158.50 180
+# 160.39 186.83 120
+# 193.10 186.83  60
+# 209.49 158.50   0
+# 193.10 130.17 300
+
 
 class State():
 
@@ -40,6 +89,8 @@ class MyRobot(wpilib.TimedRobot):
         # self.claw = Components.claw.Claw()
         # self.arm = Components.arm.Arm()
         # self.elevator = Components.elevator.Elevator()
+
+        self.algae_grabber = Components.algae_grabber.AlgaeGrabber()
 
         # self.state = State("disabled")
 
@@ -82,6 +133,7 @@ class MyRobot(wpilib.TimedRobot):
     def disabledInit(self):
         self.drivetrain.stop()
         self.drivetrain.disable()
+        self.algae_grabber.disable()
         # self.claw.Disable()
         # self.claw.Stop()
         # self.elevator.Disable()
@@ -92,10 +144,16 @@ class MyRobot(wpilib.TimedRobot):
     def disabledExit(self):
         self.drivetrain.reset()
         self.drivetrain.enable()
+        self.algae_grabber.enable()
 
     def autonomousInit(self):
         self.drivetrain.set_robot_location(-2, -1, Rotation2d(-1, 0))
         self.autonomous_state = 0
+
+    def autonomousExit(self):
+        self.autonomous_in_flight = False
+        self.drivetrain.stop()
+        self.drivetrain.disable()
 
     def autonomousPeriodic(self):
         # Make sure we hit the target coordinate
@@ -121,11 +179,20 @@ class MyRobot(wpilib.TimedRobot):
     #     # self.drivetrain = self.robotcontainer.drivetrain
 
     def robotPeriodic(self):
-        self.vision.poll()
-        self.drivetrain.update()
+        # try:
+        #     self.vision.poll()
+        #     self.test_vision()
+        # except:
+        #     pass
         # self.arm.Update()
         # self.claw.Update()
         # self.elevator.Update()
+        try:
+            self.drivetrain.update()
+        except:
+            pass
+
+        self.algae_grabber.update()
 
     def teleopInit(self):
         self.slow = 4
@@ -133,18 +200,32 @@ class MyRobot(wpilib.TimedRobot):
 
     def teleopPeriodic(self):
         # self.robotcontainer = RobotContainer()
+        self.handle_algae_grabber()
+        self.handle_drivetrain()
+        # print(self.drivetrain.odometry.getPose())
 
+    def handle_algae_grabber(self):
+        if self.driver1.getPOV() == 180:
+            self.algae_grabber.lower_arm()
+            self.slow = 1
+        elif self.driver1.getPOV() == 0:
+            self.algae_grabber.raise_arm()
+            self.slow = 4
+        # else:
+            # self.algae_grabber.stop_arm()
+
+    def handle_drivetrain(self):
         if self.repositioning and self.drivetrain.arrived_at_target():
             self.repositioning = False
             self.position_test = False
             print("We've arrived!")
 
-        if self.driver1.getAButtonPressed():
-            self.position_test = True
-            self.rotation_track_test = Rotation2d(1, 0)
-        if self.driver1.getBButtonPressed():
-            self.position_test = False
-            self.repositioning = False
+        # if self.driver1.getAButtonPressed():
+        #     self.position_test = True
+        #     self.rotation_track_test = Rotation2d(1, 0)
+        # if self.driver1.getBButtonPressed():
+        #     self.position_test = False
+        #     self.repositioning = False
 
         if self.driver1.getYButtonPressed():
             # self.drivetrain.set_wheel_angles(Rotation2d(1, 0))
@@ -153,6 +234,7 @@ class MyRobot(wpilib.TimedRobot):
 
         if self.driver1.getXButton():
             self.drivetrain.stop()
+            self.drivetrain.set_wheel_angles(Rotation2d.fromDegrees(0))
             return
 
         xspeed = self.driver1.getRightX() * self.slow
@@ -161,7 +243,7 @@ class MyRobot(wpilib.TimedRobot):
         # print(xspeed)
         # print(yspeed)
 
-        rot_speed = self.driver1.getLeftX() * math.pi
+        rot_speed = self.driver1.getLeftX() * math.pi * 2
 
         if self.position_test:
             # print(self.drivetrain.odometry.getPose())
@@ -174,4 +256,25 @@ class MyRobot(wpilib.TimedRobot):
             else:
                 self.drivetrain.drive_vector_velocity(-yspeed, -xspeed, -rot_speed)
 
-        # print(self.drivetrain.odometry.getPose())
+    def test_vision(self):
+        time_since_data_update, robot_pose_field_space = self.vision.get_position_in_field()
+        if time_since_data_update is None:
+            return
+
+        if time_since_data_update > 0.08:
+            return
+
+        _, target_id, robot_pose_target_space = self.vision.get_robot_position_in_target()
+
+        print(f"[MyRobot.test_vision] Time since last update is {time_since_data_update}s, last target_id = {target_id}")
+        print(f"[MyRobot.test_vision] robot_pose_field_space = {robot_pose_field_space}")
+        print(f"[MyRobot.test_vision] robot_pose_target_space = {robot_pose_target_space}")
+        # print(f"[MyRobot.test_vision] angles are {robot_pose_field_space.rotation().degrees()}, {robot_pose_target_space.rotation().degrees()}")
+        print(f"[MyRobot.test_vision] Target pose is {self.get_tag_position(target_id)}")
+        print(f"[MyRobot.test_vision] Relative to corner should be {self.get_robot_from_corner(robot_pose_field_space)}")
+
+    def get_robot_from_corner(self, robot_pose: Pose2d) -> Pose2d:
+        return robot_pose.relativeTo(TAG_ORIGIN)
+
+    def get_tag_position(self, tag_id: int) -> Pose2d:
+        return TAG_LIST[tag_id - 1]
