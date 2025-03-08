@@ -1,22 +1,27 @@
 from enum import Enum, auto
 import math
+import time
 
 import phoenix6
 
 import rev
 
 ARM_MOTOR_ID = 21
-LEFT_GRAB_MOTOR_ID = 14
-RIGHT_GRAB_MOTOR_ID = 15
+LEFT_GRAB_MOTOR_ID = 15
+RIGHT_GRAB_MOTOR_ID = 14
 
-ARM_RAISED_THRESHOLD = 0.8
+ARM_RAISED_THRESHOLD = 1.25
+ARM_RAISED_TARGET = 0
 
-ARM_LOWERED_THRESHOLD = 1.5
+ARM_LOWERED_THRESHOLD = 2
+ARM_LOWERED_TARGET = 3.5
 
 ARM_MIN_TRAVEL_POWER = 0.05
 ARM_TRAVEL_POWER = 0.3
 
-ARM_VERTICAL_ANGLE = 1.2
+ARM_VERTICAL_ANGLE = 1.4
+
+MAX_VEL = 2
 
 def get_arm_power(angle: float) -> float:
     angle -= ARM_VERTICAL_ANGLE
@@ -28,8 +33,11 @@ def get_arm_power(angle: float) -> float:
 class _ArmState(Enum):
     ARM_IDLE = 0
     ARM_RAISE = auto()
+    ARM_RAISING = auto()
     ARM_LOWER = auto()
+    ARM_LOWERING = auto()
     ARM_GRAB = auto()
+    ARM_GRABREL = auto()
     ARM_RELEASE = auto()
 
 
@@ -40,10 +48,14 @@ class AlgaeGrabber:
         self.arm_motor = phoenix6.hardware.TalonFX(ARM_MOTOR_ID, "rio")
         self.arm_motor.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
 
-        # self.left_grab_motor = rev.SparkMax(LEFT_GRAB_MOTOR_ID, rev.SparkLowLevel.MotorType.kBrushless)
-        # self.right_grab_motor = rev.SparkMax(RIGHT_GRAB_MOTOR_ID, rev.SparkLowLevel.MotorType.kBrushless)
+        self.zero_arm()
+
+        self.left_grab_motor = rev.SparkMax(LEFT_GRAB_MOTOR_ID, rev.SparkLowLevel.MotorType.kBrushless)
+        self.right_grab_motor = rev.SparkMax(RIGHT_GRAB_MOTOR_ID, rev.SparkLowLevel.MotorType.kBrushless)
 
         self.disabled = True
+
+        self.arm_grab_time = time.monotonic()
 
         self.arm_state = _ArmState.ARM_IDLE
 
@@ -58,26 +70,54 @@ class AlgaeGrabber:
             return
 
         if self.arm_state == _ArmState.ARM_LOWER:
-            if self.arm_motor.get_rotor_position().value_as_double > ARM_LOWERED_THRESHOLD:
+            request = phoenix6.controls.PositionDutyCycle(self.arm_lowered_target, MAX_VEL, False)
+            self.arm_motor.set_control(request)
+            self.arm_state = _ArmState.ARM_LOWERING
+
+        if self.arm_state == _ArmState.ARM_LOWERING:
+            if self.arm_motor.get_rotor_position().value_as_double > self.arm_lowered_thresh:
                 self.arm_state = _ArmState.ARM_IDLE
-            else:
-                self.arm_motor.set(-get_arm_power(self.arm_motor.get_rotor_position().value_as_double))
 
         if self.arm_state == _ArmState.ARM_RAISE:
-            if self.arm_motor.get_rotor_position().value_as_double < ARM_RAISED_THRESHOLD:
+            request = phoenix6.controls.PositionDutyCycle(self.arm_raised_target, MAX_VEL, False)
+            self.arm_motor.set_control(request)
+            self.arm_state = _ArmState.ARM_RAISING
+
+        if self.arm_state == _ArmState.ARM_RAISING:
+            if self.arm_motor.get_rotor_position().value_as_double < self.arm_raised_thresh:
                 self.arm_state = _ArmState.ARM_IDLE
-            else:
-                self.arm_motor.set(-get_arm_power(self.arm_motor.get_rotor_position().value_as_double))
 
         if self.arm_state == _ArmState.ARM_GRAB:
-            pass
+            if self.arm_motor.get_rotor_position().value_as_double > self.arm_vert:
+                self.arm_state = _ArmState.ARM_GRABREL
+                self.arm_grab_time = time.monotonic()
+                self.left_grab_motor.set(-0.4)
+                self.right_grab_motor.set(-0.4)
+            else:
+                self.arm_state = _ArmState.ARM_IDLE
 
         if self.arm_state == _ArmState.ARM_RELEASE:
-            pass
+            if self.arm_motor.get_rotor_position().value_as_double > self.arm_vert:
+                self.arm_state = _ArmState.ARM_GRABREL
+                self.arm_grab_time = time.monotonic()
+                self.left_grab_motor.set(0.7)
+                self.right_grab_motor.set(0.7)
+            else:
+                self.arm_state = _ArmState.ARM_IDLE
+
+        if self.arm_state == _ArmState.ARM_GRABREL:
+            self.arm_motor.disable()
+            if time.monotonic() - self.arm_grab_time > 0.75:
+                self.arm_state = _ArmState.ARM_IDLE
+        else:
+            self.left_grab_motor.disable()
+            self.right_grab_motor.disable()
 
         if self.arm_state == _ArmState.ARM_IDLE:
             # Motor idle code here
             self.arm_motor.disable()
+            self.left_grab_motor.disable()
+            self.right_grab_motor.disable()
 
     def enable(self):
         print("[AlgaeGrabber] Entering enabled state")
@@ -108,3 +148,11 @@ class AlgaeGrabber:
     def release_algae(self):
         print("[AlgaeGrabber] self.arm_state is set to _ArmState.ARM_RELEASE")
         self.arm_state = _ArmState.ARM_RELEASE
+
+    def zero_arm(self):
+        current_rot = self.arm_motor.get_rotor_position().value_as_double
+        self.arm_raised_thresh = ARM_RAISED_THRESHOLD + current_rot
+        self.arm_raised_target = ARM_RAISED_TARGET + current_rot
+        self.arm_lowered_thresh = ARM_LOWERED_THRESHOLD + current_rot
+        self.arm_lowered_target = ARM_LOWERED_TARGET + current_rot
+        self.arm_vert = ARM_VERTICAL_ANGLE + current_rot

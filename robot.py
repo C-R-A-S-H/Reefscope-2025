@@ -196,6 +196,7 @@ class MyRobot(wpilib.TimedRobot):
 
     def teleopInit(self):
         self.slow = 4
+        self.algae_grabber.zero_arm()
         # self.drivetrain.set_robot_location(-3, 0, Rotation2d(-1, 0))
 
     def teleopPeriodic(self):
@@ -211,6 +212,10 @@ class MyRobot(wpilib.TimedRobot):
         elif self.driver1.getPOV() == 0:
             self.algae_grabber.raise_arm()
             self.slow = 4
+        elif self.driver1.getPOV() == 270:
+            self.algae_grabber.release_algae()
+        elif self.driver1.getPOV() == 90:
+            self.algae_grabber.grab_algae()
         # else:
             # self.algae_grabber.stop_arm()
 
