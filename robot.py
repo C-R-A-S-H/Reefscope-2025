@@ -13,6 +13,7 @@ from wpimath.geometry import Rotation2d, Pose2d
 import Components.drivetrain
 import Components.vision
 import Components.algae_grabber
+import Components.elevator
 
 TAG_ORIGIN = Pose2d(-8.774, -4.032, Rotation2d.fromDegrees(0))
 
@@ -88,7 +89,7 @@ class MyRobot(wpilib.TimedRobot):
         self.drivetrain = Components.drivetrain.Drivetrain()
         # self.claw = Components.claw.Claw()
         # self.arm = Components.arm.Arm()
-        # self.elevator = Components.elevator.Elevator()
+        self.elevator = Components.elevator.Elevator()
 
         self.algae_grabber = Components.algae_grabber.AlgaeGrabber()
 
@@ -203,6 +204,7 @@ class MyRobot(wpilib.TimedRobot):
         # self.robotcontainer = RobotContainer()
         self.handle_algae_grabber()
         self.handle_drivetrain()
+        self.handleelevator()
         # print(self.drivetrain.odometry.getPose())
 
     def handle_algae_grabber(self):
@@ -218,6 +220,37 @@ class MyRobot(wpilib.TimedRobot):
             self.algae_grabber.grab_algae()
         # else:
             # self.algae_grabber.stop_arm()
+
+    def handleelevator(self):
+        if self.driver2.getRightBumper():
+            self.elevator.CoralEater(0.3)
+        elif self.driver2.getLeftBumper():
+            self.elevator.CoralEater(-0.3)
+        else:
+            self.elevator.CoralEater(0)
+
+        # if self.driver2.getAButton() and self.elevator.getLimit2() == True:
+        #     self.elevator.EleExtend(1)
+        #
+        # if self.driver2.getBButton() and self.elevator.getLimit3() == True:
+        #     self.elevator.EleExtend(1)
+        #
+        # if self.driver2.getXButton() and self.elevator.getLimit4() == True:
+        #     self.elevator.EleExtend(1)
+        #
+        # if self.driver2.getYButton() and self.elevator.getLimit1() == True:
+        #     self.elevator.EleExtend(-1)
+        #
+        # elif self.driver2.getRightStickButton() and self.driver2.getAButton() and self.elevator.getLimit2() == True:
+        #     self.elevator.EleExtend(-1)
+        #
+        # elif self.driver2.getRightStickButton() and self.driver2.getBButton() and self.elevator.getLimit3() == True:
+        #     self.elevator.EleExtend(-1)
+        #
+        # else:
+        #     self.elevator.EleExtend(0)
+
+        self.elevator.EleExtend(self.driver2.getRightY())
 
     def handle_drivetrain(self):
         if self.repositioning and self.drivetrain.arrived_at_target():
