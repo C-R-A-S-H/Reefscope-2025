@@ -222,9 +222,11 @@ class MyRobot(wpilib.TimedRobot):
             # self.algae_grabber.stop_arm()
 
     def handleelevator(self):
-        if self.driver2.getRightBumper():
-            self.elevator.CoralEater(0.3)
-        elif self.driver2.getLeftBumper():
+        # Commented out rightBumber functionality for testing with other purposes
+
+        # if self.driver2.getRightBumper():
+        #     self.elevator.CoralEater(0.3)
+        if self.driver2.getLeftBumper():
             self.elevator.CoralEater(-0.3)
         else:
             self.elevator.CoralEater(0)
@@ -250,7 +252,19 @@ class MyRobot(wpilib.TimedRobot):
         # else:
         #     self.elevator.EleExtend(0)
 
-        self.elevator.EleExtend(self.driver2.getRightY())
+
+        # Test functionality with different modes. Requires other testing first, so for now its commented out.
+
+        # if eleMode == 'stick':
+        #     self.elevator.EleExtend(self.driver2.getRightY())
+        # elif eleMode == 'button':
+        #     if self.driver2.getRightBumper():
+        #         self.elevator.EleExtend(0.8)
+
+        # Testing the button-triggered EleExtend function. Also modified the function in elevator.py for testing with rotations.
+
+        if self.driver2.getRightBumper():
+            self.elevator.EleExtend(0.5)
 
     def handle_drivetrain(self):
         if self.repositioning and self.drivetrain.arrived_at_target():

@@ -6,7 +6,7 @@ class Elevator():
     def __init__(self):
         self.kracken1 = phoenix6.hardware.TalonFX(19, "rio")
         self.kracken2 = phoenix6.hardware.TalonFX(20, "rio")
-        self.minineo = rev.SparkMax(22, rev.SparkMax.MotorType.kBrushless)
+        self.vortex = rev.SparkFlex(22, rev.SparkFlex.MotorType.kBrushless)
 
         self.limit1 = wpilib.DigitalInput(0)
         self.limit2 = wpilib.DigitalInput(1)
@@ -14,8 +14,15 @@ class Elevator():
         self.limit4 = wpilib.DigitalInput(3)
 
     def EleExtend(self, power):
-        self.kracken1.set(power)
-        self.kracken2.set(-power)
+        # self.kracken1.set(power)
+        # self.kracken2.set(-power)
+
+        request1 = phoenix6.controls.PositionDutyCycle(-10, 0.5, False)
+        request2 = phoenix6.controls.PositionDutyCycle(10, 0.5, False)
+
+        self.kracken1.set_control(request1)
+        self.kracken2.set_control(request2)
+
 
     def CoralEater(self, power):
         self.minineo.set(power)
