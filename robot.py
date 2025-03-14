@@ -77,6 +77,7 @@ class State():
     def getState(self):
         return self.state
 
+
 class MyRobot(wpilib.TimedRobot):
 
     def __init__(self) -> None:
@@ -135,6 +136,7 @@ class MyRobot(wpilib.TimedRobot):
         self.drivetrain.stop()
         self.drivetrain.disable()
         self.algae_grabber.disable()
+        self.elevator.Disable()
         # self.claw.Disable()
         # self.claw.Stop()
         # self.elevator.Disable()
@@ -146,6 +148,7 @@ class MyRobot(wpilib.TimedRobot):
         self.drivetrain.reset()
         self.drivetrain.enable()
         self.algae_grabber.enable()
+        self.elevator.Enable()
 
     def autonomousInit(self):
         self.drivetrain.set_robot_location(-2, -1, Rotation2d(-1, 0))
@@ -263,8 +266,10 @@ class MyRobot(wpilib.TimedRobot):
 
         # Testing the button-triggered EleExtend function. Also modified the function in elevator.py for testing with rotations.
 
-        if self.driver2.getRightBumper():
-            self.elevator.EleExtend(0.5)
+        # D1 is base, D2 is Ele
+        # if self.elevator.maxPOS <= self.elevator.kracken1.get_rotor_position().value_as_double <= self.elevator.startPOS:
+        self.elevator.EleExtend(-self.driver2.getRightY())
+
 
     def handle_drivetrain(self):
         if self.repositioning and self.drivetrain.arrived_at_target():
