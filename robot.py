@@ -13,6 +13,7 @@ from wpimath.geometry import Rotation2d, Pose2d
 import Components.drivetrain
 import Components.vision
 import Components.algae_grabber
+import Components.coral_grabber
 
 TAG_ORIGIN = Pose2d(-8.774, -4.032, Rotation2d.fromDegrees(0))
 
@@ -90,7 +91,9 @@ class MyRobot(wpilib.TimedRobot):
         # self.arm = Components.arm.Arm()
         # self.elevator = Components.elevator.Elevator()
 
+        print("\n[MyRobot.__init__] Initializing algae and coral grabbers...")
         self.algae_grabber = Components.algae_grabber.AlgaeGrabber()
+        self.coral_grabber = Components.coral_grabber.CoralGrabber()
 
         # self.state = State("disabled")
 
@@ -117,6 +120,9 @@ class MyRobot(wpilib.TimedRobot):
                                   (-2,  2, Rotation2d(-1, 0))]
         print(self.autonomous_coords)
 
+        print("\n[MyRobot.__init__] Setting up temp auto...")
+        self.temp_auto_running = False
+
         print("\n[MyRobot.__init__] Initializing vision...")
         self.vision = Components.vision.Vision()
 
@@ -134,6 +140,7 @@ class MyRobot(wpilib.TimedRobot):
         self.drivetrain.stop()
         self.drivetrain.disable()
         self.algae_grabber.disable()
+        self.coral_grabber.disable()
         # self.claw.Disable()
         # self.claw.Stop()
         # self.elevator.Disable()
@@ -145,10 +152,13 @@ class MyRobot(wpilib.TimedRobot):
         self.drivetrain.reset()
         self.drivetrain.enable()
         self.algae_grabber.enable()
+        self.coral_grabber.enable()
 
     def autonomousInit(self):
-        self.drivetrain.set_robot_location(-2, -1, Rotation2d(-1, 0))
+        # self.drivetrain.set_robot_location(-2, -1, Rotation2d(-1, 0))
         self.autonomous_state = 0
+        self.temp_auto_running = False
+        self.drivetrain.set_robot_location(0, 0, Rotation2d.fromDegrees(0))
 
     def autonomousExit(self):
         self.autonomous_in_flight = False
@@ -156,22 +166,26 @@ class MyRobot(wpilib.TimedRobot):
         self.drivetrain.disable()
 
     def autonomousPeriodic(self):
+        if not self.temp_auto_running:
+            self.drivetrain.drive_vector_position(1, 0, Rotation2d.fromDegrees(0))
+            self.temp_auto_running = True
+
         # Make sure we hit the target coordinate
-        if self.autonomous_in_flight and not self.drivetrain.arrived_at_target():
-            return
+        # if self.autonomous_in_flight and not self.drivetrain.arrived_at_target():
+        #     return
 
-        if self.autonomous_state >= len(self.autonomous_coords):
-            self.drivetrain.stop()
-            if self.autonomous_in_flight:
-                print("Done")
-            self.autonomous_in_flight = False
-            return
+        # if self.autonomous_state >= len(self.autonomous_coords):
+        #     self.drivetrain.stop()
+        #     if self.autonomous_in_flight:
+        #         print("Done")
+        #     self.autonomous_in_flight = False
+        #     return
 
-        self.autonomous_in_flight = True
-        xpos, ypos, heading = self.autonomous_coords[self.autonomous_state]
-        self.drivetrain.drive_vector_position(xpos, ypos, heading)
-        print(f"Running stage {self.autonomous_state}...")
-        self.autonomous_state += 1
+        # self.autonomous_in_flight = True
+        # xpos, ypos, heading = self.autonomous_coords[self.autonomous_state]
+        # self.drivetrain.drive_vector_position(xpos, ypos, heading)
+        # print(f"Running stage {self.autonomous_state}...")
+        # self.autonomous_state += 1
 
     # def robot(self):
     #     pass
@@ -192,7 +206,11 @@ class MyRobot(wpilib.TimedRobot):
         except:
             pass
 
-        self.algae_grabber.update()
+        try:
+            self.algae_grabber.update()
+            self.coral_grabber.update()
+        except:
+            pass
 
     def teleopInit(self):
         self.slow = 4
@@ -203,7 +221,15 @@ class MyRobot(wpilib.TimedRobot):
         # self.robotcontainer = RobotContainer()
         self.handle_algae_grabber()
         self.handle_drivetrain()
+        self.handle_coral_grabber()
         # print(self.drivetrain.odometry.getPose())
+
+    def handle_coral_grabber(self):
+        if self.driver2.getAButtonPressed():
+            self.coral_grabber.elevator_l1()
+
+        if self.driver2.getBButtonPressed():
+            self.coral_grabber.elevator_ground()
 
     def handle_algae_grabber(self):
         if self.driver1.getPOV() == 180:
