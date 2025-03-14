@@ -22,7 +22,7 @@ class Elevator():
         self.limit4 = wpilib.DigitalInput(3)
 
     def EleExtend(self, power):
-
+        power = min(0.5, max(power, -0.5))
         # Assuming ele is at bottom
 
         # self.kracken1.set(power)
@@ -63,6 +63,10 @@ class Elevator():
         self.kracken2.disable()
         self.kracken1.setNeutralMode(phoenix6.signals.NeutralModeValue.COAST)
         self.kracken2.setNeutralMode(phoenix6.signals.NeutralModeValue.COAST)
+        self.vortex.disable()
+
+    def set_intake_power(self, power):
+        self.vortex.set(power/3)
 
     def Update(self):
         self.kracken.get_position()
@@ -73,6 +77,6 @@ class Elevator():
 
     def Enable(self):
         self.startPOS = self.kracken1.get_rotor_position().value_as_double + 20
-        self.maxPOS = self.startPOS + 50  # 116
+        self.maxPOS = self.startPOS + 106
         self.kracken1.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
         self.kracken2.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)

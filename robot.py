@@ -111,6 +111,7 @@ class MyRobot(wpilib.TimedRobot):
 
         print("\n[MyRobot.__init__] Setting autonomous_state to 0...")
         self.autonomous_state = 0
+        self.temp_auto = False
         print("\n[MyRobot.__init__] Marking autonomous as not in flight...")
         self.autonomous_in_flight = False  # Make sure we don't accidentally stage immediately after startup
         print("\n[MyRobot.__init__] Setting up autonomous coordinates...")
@@ -151,8 +152,9 @@ class MyRobot(wpilib.TimedRobot):
         self.elevator.Enable()
 
     def autonomousInit(self):
-        self.drivetrain.set_robot_location(-2, -1, Rotation2d(-1, 0))
+        self.drivetrain.reset()
         self.autonomous_state = 0
+        self.temp_auto = False
 
     def autonomousExit(self):
         self.autonomous_in_flight = False
@@ -161,6 +163,11 @@ class MyRobot(wpilib.TimedRobot):
 
     def autonomousPeriodic(self):
         # Make sure we hit the target coordinate
+        if self.temp_auto:
+            return
+        self.drivetrain.drive_vector_position(-0.6, 0, Rotation2d.fromDegrees(0))
+        self.temp_auto = True
+        return
         if self.autonomous_in_flight and not self.drivetrain.arrived_at_target():
             return
 
@@ -200,6 +207,7 @@ class MyRobot(wpilib.TimedRobot):
 
     def teleopInit(self):
         self.slow = 4
+        self.turn_speed = 1
         self.algae_grabber.zero_arm()
         # self.drivetrain.set_robot_location(-3, 0, Rotation2d(-1, 0))
 
@@ -213,9 +221,11 @@ class MyRobot(wpilib.TimedRobot):
     def handle_algae_grabber(self):
         if self.driver1.getPOV() == 180:
             self.algae_grabber.lower_arm()
+            self.turn_speed = 0.5
             self.slow = 1
         elif self.driver1.getPOV() == 0:
             self.algae_grabber.raise_arm()
+            self.turn_speed = 1
             self.slow = 4
         elif self.driver1.getPOV() == 270:
             self.algae_grabber.release_algae()
@@ -229,10 +239,7 @@ class MyRobot(wpilib.TimedRobot):
 
         # if self.driver2.getRightBumper():
         #     self.elevator.CoralEater(0.3)
-        if self.driver2.getLeftBumper():
-            self.elevator.CoralEater(-0.3)
-        else:
-            self.elevator.CoralEater(0)
+        self.elevator.set_intake_power(self.driver2.getLeftY())
 
         # if self.driver2.getAButton() and self.elevator.getLimit2() == True:
         #     self.elevator.EleExtend(1)
@@ -300,7 +307,7 @@ class MyRobot(wpilib.TimedRobot):
         # print(xspeed)
         # print(yspeed)
 
-        rot_speed = self.driver1.getLeftX() * math.pi * 2
+        rot_speed = self.driver1.getLeftX() * math.pi * 2 * self.turn_speed
 
         if self.position_test:
             # print(self.drivetrain.odometry.getPose())

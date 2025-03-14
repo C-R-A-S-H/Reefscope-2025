@@ -91,8 +91,8 @@ class AlgaeGrabber:
             if self.arm_motor.get_rotor_position().value_as_double > self.arm_vert:
                 self.arm_state = _ArmState.ARM_GRABREL
                 self.arm_grab_time = time.monotonic()
-                self.left_grab_motor.set(-0.4)
-                self.right_grab_motor.set(-0.4)
+                self.left_grab_motor.set(-0.6)
+                self.right_grab_motor.set(-0.6)
             else:
                 self.arm_state = _ArmState.ARM_IDLE
 
@@ -107,7 +107,7 @@ class AlgaeGrabber:
 
         if self.arm_state == _ArmState.ARM_GRABREL:
             self.arm_motor.disable()
-            if time.monotonic() - self.arm_grab_time > 0.75:
+            if time.monotonic() - self.arm_grab_time > 1.5:
                 self.arm_state = _ArmState.ARM_IDLE
         else:
             self.left_grab_motor.disable()
