@@ -64,8 +64,8 @@ class AlgaeGrabber:
         if self.disabled:
             self.arm_motor.disable()
             # self.arm_motor.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
-            # self.left_grab_motor.disable()
-            # self.right_grab_motor.disable()
+            self.left_grab_motor.disable()
+            self.right_grab_motor.disable()
             self.arm_state = _ArmState.ARM_IDLE
             return
 
