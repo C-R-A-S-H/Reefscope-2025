@@ -80,3 +80,5 @@ class Elevator():
         self.maxPOS = self.startPOS + 106
         self.kracken1.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
         self.kracken2.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
+
+class
