@@ -120,8 +120,8 @@ class MyRobot(wpilib.TimedRobot):
                                   (-2,  2, Rotation2d(-1, 0))]
         print(self.autonomous_coords)
 
-        print("\n[MyRobot.__init__] Initializing vision...")
-        self.vision = Components.vision.Vision()
+        # print("\n[MyRobot.__init__] Initializing vision...")
+        # self.vision = Components.vision.Vision()
 
         print("\nMyRobot.__init__ completed.")
 
@@ -227,9 +227,9 @@ class MyRobot(wpilib.TimedRobot):
             self.algae_grabber.raise_arm()
             self.turn_speed = 1
             self.slow = 4
-        elif self.driver1.getPOV() == 270:
+        elif self.driver2.getLeftBumper():
             self.algae_grabber.release_algae()
-        elif self.driver1.getPOV() == 90:
+        elif self.driver2.getRightBumper():
             self.algae_grabber.grab_algae()
         # else:
             # self.algae_grabber.stop_arm()
@@ -239,7 +239,7 @@ class MyRobot(wpilib.TimedRobot):
 
         # if self.driver2.getRightBumper():
         #     self.elevator.CoralEater(0.3)
-        self.elevator.set_intake_power(self.driver2.getLeftY())
+        self.elevator.set_intake_power(-self.driver2.getLeftY())
 
         # if self.driver2.getAButton() and self.elevator.getLimit2() == True:
         #     self.elevator.EleExtend(1)
