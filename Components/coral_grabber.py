@@ -169,7 +169,7 @@ class CoralGrabber():
 
     def _set_elevator_targets(self, target_l: float, target_r: float):
         elevator_l_target = phoenix6.controls.PositionDutyCycle(target_l, ELEVATOR_VELOCITY, False)
-        elevator_r_target = phoenix6.controls.PositionDutyCycle(-target_r, ELEVATOR_VELOCITY, False)
+        elevator_r_target = phoenix6.controls.PositionDutyCycle(target_r, ELEVATOR_VELOCITY, False)
 
         self.elevator_l_motor.set_control(elevator_l_target)
         self.elevator_r_motor.set_control(elevator_r_target)
