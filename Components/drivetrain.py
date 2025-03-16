@@ -57,7 +57,7 @@ class Drivetrain():
 
         self.target_velocity: ChassisSpeeds = ChassisSpeeds(0, 0, 0)
 
-        self.translation_pid_constraints = trajectory.TrapezoidProfile.Constraints(2, 3)
+        self.translation_pid_constraints = trajectory.TrapezoidProfile.Constraints(1, 4)
         self.translation_pid_kP = 4
         self.translation_pid_kI = 1
         self.translation_pid_kD = 0.3

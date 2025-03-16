@@ -13,8 +13,10 @@ class Elevator():
         self.vortex = rev.SparkFlex(22, rev.SparkFlex.MotorType.kBrushless)
 
         self.startPOS = self.kracken1.get_rotor_position().value_as_double + 20
-        self.maxPOS = self.startPOS + 50#116
+        self.maxPOS = self.startPOS + 106#116
         self.sillyDouble = self.kracken1.get_rotor_position().value_as_double
+
+        self.has_been_enabled = False
 
         self.limit1 = wpilib.DigitalInput(0)
         self.limit2 = wpilib.DigitalInput(1)
@@ -27,13 +29,16 @@ class Elevator():
 
         # self.kracken1.set(power)
         # self.kracken2.set(-power)
+        # compute how far we'll move in a tick
+        rot_vel = self.kracken1.get_rotor_velocity().value_as_double * 0.02
+        rot_pos = self.kracken1.get_rotor_position().value_as_double
 
-        if self.kracken1.get_rotor_position().value_as_double > self.startPOS and power < 0:
-            self.kracken1.set(power)
-            self.kracken2.set(power)
-        elif self.kracken1.get_rotor_position().value_as_double < self.maxPOS and power > 0:
-            self.kracken1.set(power)
-            self.kracken2.set(power)
+        if rot_pos - rot_vel > self.startPOS and power < 0:
+            self.kracken1.set(-abs(power))
+            self.kracken2.set(-abs(power))
+        elif rot_pos + rot_vel < self.maxPOS and power > 0:
+            self.kracken1.set(abs(power))
+            self.kracken2.set(abs(power))
         else:
             self.kracken1.disable()
             self.kracken2.disable()
@@ -74,9 +79,12 @@ class Elevator():
     def Stop(self):
         self.kracken1.disable()
         self.kracken2.disable()
+        self.vortex.disable()
 
     def Enable(self):
-        self.startPOS = self.kracken1.get_rotor_position().value_as_double + 20
-        self.maxPOS = self.startPOS + 106
+        if not self.has_been_enabled:
+            self.startPOS = self.kracken1.get_rotor_position().value_as_double + 20
+            self.maxPOS = self.startPOS + 106
+        self.has_been_enabled = True
         self.kracken1.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
         self.kracken2.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)

@@ -1,4 +1,5 @@
 import math
+import time
 
 import wpilib
 import wpilib.drive
@@ -114,6 +115,8 @@ class MyRobot(wpilib.TimedRobot):
         self.temp_auto = False
         print("\n[MyRobot.__init__] Marking autonomous as not in flight...")
         self.autonomous_in_flight = False  # Make sure we don't accidentally stage immediately after startup
+        self.autonomous_state_started = False
+        self.auto_last_stage_time = time.perf_counter()
         print("\n[MyRobot.__init__] Setting up autonomous coordinates...")
         self.autonomous_coords = [(-4, -1, Rotation2d(-1, 0)),
                                   (-4,  2, Rotation2d(-1, 0)),
@@ -153,8 +156,10 @@ class MyRobot(wpilib.TimedRobot):
 
     def autonomousInit(self):
         self.drivetrain.reset()
-        self.autonomous_state = 0
+        self.autonomous_state = 2
         self.temp_auto = False
+        self.autonomous_state_started = False
+        self.autonomous_in_flight = False
 
     def autonomousExit(self):
         self.autonomous_in_flight = False
@@ -162,27 +167,97 @@ class MyRobot(wpilib.TimedRobot):
         self.drivetrain.disable()
 
     def autonomousPeriodic(self):
-        # Make sure we hit the target coordinate
-        if self.temp_auto:
-            return
-        self.drivetrain.drive_vector_position(-0.6, 0, Rotation2d.fromDegrees(0))
-        self.temp_auto = True
-        return
-        if self.autonomous_in_flight and not self.drivetrain.arrived_at_target():
-            return
+        MAX_STATE = 6
+        ELEVATOR_INIT_TIME = 0.3
+        ELEVATOR_INIT2_TIME = 0.4
+        ELEVATOR_RAISE_TIME = 1.05
 
-        if self.autonomous_state >= len(self.autonomous_coords):
+        if self.autonomous_state >= MAX_STATE:
             self.drivetrain.stop()
             if self.autonomous_in_flight:
                 print("Done")
             self.autonomous_in_flight = False
             return
 
-        self.autonomous_in_flight = True
-        xpos, ypos, heading = self.autonomous_coords[self.autonomous_state]
-        self.drivetrain.drive_vector_position(xpos, ypos, heading)
-        print(f"Running stage {self.autonomous_state}...")
-        self.autonomous_state += 1
+        if not self.autonomous_in_flight:
+            print(f"Running stage {self.autonomous_state}...")
+            self.autonomous_in_flight = True
+
+        if self.autonomous_state == 0:
+            if not self.autonomous_state_started:
+                self.autonomous_state_started = True
+                self.elevator.EleExtend(0.5)
+                self.auto_last_stage_time = time.perf_counter()
+            else:
+                if time.perf_counter() > self.auto_last_stage_time + ELEVATOR_INIT_TIME:
+                    self.autonomous_state += 1
+                    self.autonomous_state_started = False
+                    self.elevator.Stop()
+
+        if self.autonomous_state == 1:
+            if not self.autonomous_state_started:
+                self.autonomous_state_started = True
+                self.elevator.EleExtend(-0.5)
+                self.auto_last_stage_time = time.perf_counter()
+            else:
+                self.elevator.EleExtend(-0.5)
+                if time.perf_counter() > self.auto_last_stage_time + ELEVATOR_INIT2_TIME:
+                    self.autonomous_state += 1
+                    self.autonomous_state_started = False
+                    self.elevator.Stop()
+
+        if self.autonomous_state == 2:
+            if not self.autonomous_state_started:
+                self.autonomous_state_started = True
+                self.elevator.EleExtend(0.5)
+                self.auto_last_stage_time = time.perf_counter()
+            else:
+                if time.perf_counter() > self.auto_last_stage_time + ELEVATOR_RAISE_TIME:
+                    self.autonomous_state += 1
+                    self.autonomous_state_started = False
+                    self.elevator.Stop()
+
+        if self.autonomous_state == 3:
+            if not self.autonomous_state_started:
+                self.autonomous_state_started = True
+                self.drivetrain.drive_vector_position(-3, 0, Rotation2d.fromDegrees(0))
+            else:
+                if self.drivetrain.arrived_at_target():
+                    self.autonomous_state += 1
+                    self.autonomous_state_started = False
+
+        if self.autonomous_state == 4:
+            if not self.autonomous_state_started:
+                self.autonomous_state_started = True
+                self.elevator.CoralEater(0.1)
+                self.auto_last_stage_time = time.perf_counter()
+            else:
+                if time.perf_counter() > self.auto_last_stage_time + 3:
+                    self.autonomous_state += 1
+                    self.autonomous_state_started = False
+                    self.elevator.Stop()
+
+        if self.autonomous_state == 5:
+            if not self.autonomous_state_started:
+                self.autonomous_state_started = True
+                self.elevator.EleExtend(-0.5)
+                self.auto_last_stage_time = time.perf_counter()
+            else:
+                self.elevator.EleExtend(-0.5)
+                if time.perf_counter() > self.auto_last_stage_time + ELEVATOR_RAISE_TIME:
+                    self.autonomous_state += 1
+                    self.autonomous_state_started = False
+                    self.elevator.Stop()
+
+        # if self.autonomous_state == 6:
+        #     if not self.autonomous_state_started:
+        #         self.autonomous_state_started = True
+        #         self.drivetrain.drive_vector_position(-0.7, 0, Rotation2d.fromDegrees(0))
+        #     else:
+        #         if self.drivetrain.arrived_at_target():
+        #             self.autonomous_state += 1
+        #             self.autonomous_state_started = False
+        
 
     # def robot(self):
     #     pass
@@ -221,8 +296,8 @@ class MyRobot(wpilib.TimedRobot):
     def handle_algae_grabber(self):
         if self.driver1.getPOV() == 180:
             self.algae_grabber.lower_arm()
-            self.turn_speed = 0.5
-            self.slow = 1
+            self.turn_speed = 0.75
+            self.slow = 3
         elif self.driver1.getPOV() == 0:
             self.algae_grabber.raise_arm()
             self.turn_speed = 1

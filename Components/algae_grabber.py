@@ -37,7 +37,8 @@ class _ArmState(Enum):
     ARM_LOWER = auto()
     ARM_LOWERING = auto()
     ARM_GRAB = auto()
-    ARM_GRABREL = auto()
+    ARM_GRABBING = auto()
+    ARM_RELEASING = auto()
     ARM_RELEASE = auto()
 
 
@@ -89,25 +90,29 @@ class AlgaeGrabber:
 
         if self.arm_state == _ArmState.ARM_GRAB:
             if self.arm_motor.get_rotor_position().value_as_double > self.arm_vert:
-                self.arm_state = _ArmState.ARM_GRABREL
+                self.arm_state = _ArmState.ARM_GRABBING
                 self.arm_grab_time = time.monotonic()
                 self.left_grab_motor.set(-0.6)
                 self.right_grab_motor.set(-0.6)
+                self.arm_motor.disable()
             else:
                 self.arm_state = _ArmState.ARM_IDLE
 
         if self.arm_state == _ArmState.ARM_RELEASE:
             if self.arm_motor.get_rotor_position().value_as_double > self.arm_vert:
-                self.arm_state = _ArmState.ARM_GRABREL
+                self.arm_state = _ArmState.ARM_RELEASING
                 self.arm_grab_time = time.monotonic()
-                self.left_grab_motor.set(0.7)
-                self.right_grab_motor.set(0.7)
+                self.left_grab_motor.set(0.55)
+                self.right_grab_motor.set(0.55)
+                self.arm_motor.disable()
             else:
                 self.arm_state = _ArmState.ARM_IDLE
 
-        if self.arm_state == _ArmState.ARM_GRABREL:
-            self.arm_motor.disable()
+        if self.arm_state == _ArmState.ARM_GRABBING:
             if time.monotonic() - self.arm_grab_time > 1.5:
+                self.arm_state = _ArmState.ARM_IDLE
+        elif self.arm_state == _ArmState.ARM_RELEASING:
+            if time.monotonic() - self.arm_grab_time > 2.5:
                 self.arm_state = _ArmState.ARM_IDLE
         else:
             self.left_grab_motor.disable()
