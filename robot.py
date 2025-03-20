@@ -91,7 +91,11 @@ class MyRobot(wpilib.TimedRobot):
         # self.claw = Components.claw.Claw()
         # self.arm = Components.arm.Arm()
         self.elevator = Components.elevator.Elevator()
-        self.snaps = [30, 60, 90]
+        self.firstSnap = True
+        self.dire = -1
+        self.snapLocat = 0
+        self.isSnapState = True
+        self.snaps = [50, 77, 123]
 
         self.algae_grabber = Components.algae_grabber.AlgaeGrabber()
 
@@ -292,18 +296,30 @@ class MyRobot(wpilib.TimedRobot):
 
         # D1 is base, D2 is Ele
         # if self.elevator.maxPOS <= self.elevator.kracken1.get_rotor_position().value_as_double <= self.elevator.startPOS:
-        if isSnapState == True:
+        if self.isSnapState:
             self.elevator.EleExtend(-self.driver2.getRightY())
 
-        if self.driver2.getRightStickButton():
+        if self.driver2.getRightStickButton() and self.isSnapState:
             # Makes the elevator snap to the closes snapping point
-            firstSnap = True
-            curPOS = self.elevator.kracken1.get_rotor_position().value_as_double
-            snapLocat = self.closestSnap(self.snaps, curPOS)
+            curPOS = round(self.elevator.kracken1.get_rotor_position().value_as_double)
 
-            print("I'm snappy, but I'm only this snappy: " + snapLocat)
-            dir = -1 if snapLoc < curPOS else 1
-            self.elevator.EleExtend()
+            if self.firstSnap:
+                self.snapLocat = self.closestSnap(self.snaps, curPOS)
+            if curPOS > self.snapLocat:
+                self.dire = -1
+                if not curPOS == self.snapLocat:
+                    self.elevator.EleExtend(self.dire)
+                else:
+                    self.firstSnap = False
+            elif curPOS < self.snapLocat:
+                self.dire = 1
+                if not curPOS == self.snapLocat:
+                    self.elevator.EleExtend(self.dire)
+                else:
+                    self.firstSnap = False
+
+            self.firstSnap = False
+
 
 
 
