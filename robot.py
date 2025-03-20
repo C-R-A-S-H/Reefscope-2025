@@ -91,6 +91,7 @@ class MyRobot(wpilib.TimedRobot):
         # self.claw = Components.claw.Claw()
         # self.arm = Components.arm.Arm()
         self.elevator = Components.elevator.Elevator()
+        self.snaps = [30, 60, 90]
 
         self.algae_grabber = Components.algae_grabber.AlgaeGrabber()
 
@@ -234,6 +235,22 @@ class MyRobot(wpilib.TimedRobot):
         # else:
             # self.algae_grabber.stop_arm()
 
+    def closestSnap(self, list_of_numbers, target_number):
+        if not list_of_numbers:
+            return None  # Handle empty list case
+
+        closest_number = list_of_numbers[0]
+        min_difference = abs(list_of_numbers[0] - target_number)
+
+        for number in list_of_numbers:
+            difference = abs(number - target_number)
+            if difference < min_difference:
+                min_difference = difference
+                closest_number = number
+
+        return closest_number
+
+
     def handleelevator(self):
         # Commented out rightBumber functionality for testing with other purposes
 
@@ -275,7 +292,19 @@ class MyRobot(wpilib.TimedRobot):
 
         # D1 is base, D2 is Ele
         # if self.elevator.maxPOS <= self.elevator.kracken1.get_rotor_position().value_as_double <= self.elevator.startPOS:
-        self.elevator.EleExtend(-self.driver2.getRightY())
+        if isSnapState == True:
+            self.elevator.EleExtend(-self.driver2.getRightY())
+
+        if self.driver2.getRightStickButton():
+            # Makes the elevator snap to the closes snapping point
+            firstSnap = True
+            curPOS = self.elevator.kracken1.get_rotor_position().value_as_double
+            snapLocat = self.closestSnap(self.snaps, curPOS)
+
+            print("I'm snappy, but I'm only this snappy: " + snapLocat)
+            dir = -1 if snapLoc < curPOS else 1
+            self.elevator.EleExtend()
+
 
 
     def handle_drivetrain(self):

@@ -33,6 +33,8 @@ class Elevator():
             self.kracken2.set(power)
         elif self.kracken1.get_rotor_position().value_as_double < self.maxPOS and power > 0:
             self.kracken1.set(power)
+
+
             self.kracken2.set(power)
         else:
             self.kracken1.disable()
@@ -80,5 +82,3 @@ class Elevator():
         self.maxPOS = self.startPOS + 106
         self.kracken1.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
         self.kracken2.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
-
-class
