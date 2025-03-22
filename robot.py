@@ -91,12 +91,6 @@ class MyRobot(wpilib.TimedRobot):
         # self.claw = Components.claw.Claw()
         # self.arm = Components.arm.Arm()
         self.elevator = Components.elevator.Elevator()
-        self.firstSnap = True
-        self.dire = -1
-        self.snapLocat = 0
-        self.isSnapState = True
-        self.snaps = [50, 77, 123]
-
         self.algae_grabber = Components.algae_grabber.AlgaeGrabber()
 
         # self.state = State("disabled")
@@ -256,69 +250,20 @@ class MyRobot(wpilib.TimedRobot):
 
 
     def handleelevator(self):
-        # Commented out rightBumber functionality for testing with other purposes
-
-        # if self.driver2.getRightBumper():
-        #     self.elevator.CoralEater(0.3)
-        self.elevator.set_intake_power(self.driver2.getLeftY())
-
-        # if self.driver2.getAButton() and self.elevator.getLimit2() == True:
-        #     self.elevator.EleExtend(1)
-        #
-        # if self.driver2.getBButton() and self.elevator.getLimit3() == True:
-        #     self.elevator.EleExtend(1)
-        #
-        # if self.driver2.getXButton() and self.elevator.getLimit4() == True:
-        #     self.elevator.EleExtend(1)
-        #
-        # if self.driver2.getYButton() and self.elevator.getLimit1() == True:
-        #     self.elevator.EleExtend(-1)
-        #
-        # elif self.driver2.getRightStickButton() and self.driver2.getAButton() and self.elevator.getLimit2() == True:
-        #     self.elevator.EleExtend(-1)
-        #
-        # elif self.driver2.getRightStickButton() and self.driver2.getBButton() and self.elevator.getLimit3() == True:
-        #     self.elevator.EleExtend(-1)
-        #
-        # else:
-        #     self.elevator.EleExtend(0)
-
-
-        # Test functionality with different modes. Requires other testing first, so for now its commented out.
-
-        # if eleMode == 'stick':
-        #     self.elevator.EleExtend(self.driver2.getRightY())
-        # elif eleMode == 'button':
-        #     if self.driver2.getRightBumper():
-        #         self.elevator.EleExtend(0.8)
-
-        # Testing the button-triggered EleExtend function. Also modified the function in elevator.py for testing with rotations.
-
-        # D1 is base, D2 is Ele
-        # if self.elevator.maxPOS <= self.elevator.kracken1.get_rotor_position().value_as_double <= self.elevator.startPOS:
-        if self.isSnapState:
+        # Set manual control when not snapping
+        if self.driver2.getRightBumper():
+            self.elevator.CoralEater(0.3)
+        else:
+            self.elevator.CoralEater(0)
+        if not self.elevator.isSnapping:
             self.elevator.EleExtend(-self.driver2.getRightY())
 
-        if self.driver2.getRightStickButton() and self.isSnapState:
-            # Makes the elevator snap to the closes snapping point
-            curPOS = round(self.elevator.kracken1.get_rotor_position().value_as_double)
+        # Initiate snapping when right stick is pressed
+        if self.driver2.getRightStickButton():
+            self.elevator.snapToNearest()
 
-            if self.firstSnap:
-                self.snapLocat = self.closestSnap(self.snaps, curPOS)
-            if curPOS > self.snapLocat:
-                self.dire = -1
-                if not curPOS == self.snapLocat:
-                    self.elevator.EleExtend(self.dire)
-                else:
-                    self.firstSnap = False
-            elif curPOS < self.snapLocat:
-                self.dire = 1
-                if not curPOS == self.snapLocat:
-                    self.elevator.EleExtend(self.dire)
-                else:
-                    self.firstSnap = False
-
-            self.firstSnap = False
+        # Continue snapping movement
+        self.elevator.updateSnap()
 
 
 
