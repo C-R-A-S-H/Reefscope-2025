@@ -1,4 +1,3 @@
-
 import rev
 import phoenix6
 import wpilib
@@ -16,13 +15,12 @@ class Elevator():
         self.startPOS = self.kracken1.get_rotor_position().value_as_double + 20
         self.maxPOS = self.startPOS + 50
 
-        self.limit1 = wpilib.DigitalInput(0)
-        self.limit2 = wpilib.DigitalInput(1)
-        self.limit3 = wpilib.DigitalInput(2)
-        self.limit4 = wpilib.DigitalInput(3)
-
-
-        self.snaps = [11, 35, 78]  # Define snapping points
+        self.snaps = {
+            'A': 48,
+            'B': 40,
+            'Y': 70,
+            'X': 115
+        }  # Assign levels to buttons
         self.snapLocat = None
         self.isSnapping = False
         self.snapThreshold = 3  # Increased threshold to reduce jitter
@@ -50,18 +48,6 @@ class Elevator():
     def CoralEater(self, power):
         self.vortex.set(power)
 
-    def getLimit1(self):
-        self.limit1.get()
-
-    def getLimit2(self):
-        self.limit2.get()
-
-    def getLimit3(self):
-        self.limit3.get()
-
-    def getLimit4(self):
-        self.limit4.get()
-
     def Disable(self):
         self.kracken1.disable()
         self.kracken2.disable()
@@ -69,29 +55,15 @@ class Elevator():
         self.kracken2.setNeutralMode(phoenix6.signals.NeutralModeValue.COAST)
         self.vortex.disable()
 
-    def set_intake_power(self, power):
-        self.vortex.set(power/3)
-
-    def Update(self):
-        self.kracken.get_position()
-
-    def Stop(self):
-        self.kracken1.disable()
-        self.kracken2.disable()
-
     def Enable(self):
-        self.startPOS = self.kracken1.get_rotor_position().value_as_double + 20
+        self.startPOS = self.getCurrentPosition() + 20
         self.maxPOS = self.startPOS + 106
         self.kracken1.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
         self.kracken2.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
 
-    def closestSnap(self, target):
-        return min(self.snaps, key=lambda x: abs(x - target))
-
-    def snapToNearest(self):
-        if not self.isSnapping:
-            current_pos = round(self.getCurrentPosition())
-            self.snapLocat = self.closestSnap(current_pos)
+    def snapToLevel(self, button):
+        if button in self.snaps:
+            self.snapLocat = self.snaps[button]
             self.isSnapping = True
 
     def updateSnap(self):
@@ -108,3 +80,20 @@ class Elevator():
             power = max(self.minPower, min(self.maxPower, abs(error) / 15)) * direction  # Smooth deceleration
 
             self.EleExtend(power)
+
+
+    def getLimit1(self):
+        self.limit1.get()
+
+    def getLimit2(self):
+        self.limit2.get()
+
+    def getLimit3(self):
+        self.limit3.get()
+
+    def getLimit4(self):
+        self.limit4.get()
+
+
+    def set_intake_power(self, power):
+        self.vortex.set(power/3)

@@ -248,21 +248,27 @@ class MyRobot(wpilib.TimedRobot):
 
         return closest_number
 
-
     def handleelevator(self):
-        # Set manual control when not snapping
+        # Manually control the elevator when not snapping
+        if not self.elevator.isSnapping:
+            self.elevator.EleExtend(-self.driver2.getRightY())
+
+        # Assign buttons to different elevator positions
+        if self.driver2.getBButtonPressed():
+            self.elevator.snapToLevel('B')
+        elif self.driver2.getYButtonPressed():
+            self.elevator.snapToLevel('Y')
+        elif self.driver2.getAButtonPressed():
+            self.elevator.snapToLevel('A')
+        elif self.driver2.getXButtonPressed():
+            self.elevator.snapToLevel('X')
+
         if self.driver2.getRightBumper():
             self.elevator.CoralEater(0.3)
         else:
             self.elevator.CoralEater(0)
-        if not self.elevator.isSnapping:
-            self.elevator.EleExtend(-self.driver2.getRightY())
 
-        # Initiate snapping when right stick is pressed
-        if self.driver2.getRightStickButton():
-            self.elevator.snapToNearest()
-
-        # Continue snapping movement
+        # Continue snapping if active
         self.elevator.updateSnap()
 
 
