@@ -3,3 +3,4 @@ __pycache__
 *~
 \#*#
 .wpilib
+ctre_sim/
