@@ -296,15 +296,15 @@ class MyRobot(wpilib.TimedRobot):
     def handle_algae_grabber(self):
         if self.driver1.getPOV() == 180:
             self.algae_grabber.lower_arm()
-            self.turn_speed = 0.75
-            self.slow = 3
+            self.turn_speed = 0.7
+            self.slow = 3.5
         elif self.driver1.getPOV() == 0:
             self.algae_grabber.raise_arm()
             self.turn_speed = 1
             self.slow = 4
-        elif self.driver2.getLeftBumper():
-            self.algae_grabber.release_algae()
         elif self.driver2.getRightBumper():
+            self.algae_grabber.release_algae()
+        elif self.driver2.getLeftBumper():
             self.algae_grabber.grab_algae()
         # else:
             # self.algae_grabber.stop_arm()
