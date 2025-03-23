@@ -10,10 +10,14 @@ import wpimath.controller
 from wpimath.kinematics import ChassisSpeeds
 from wpimath.geometry import Rotation2d, Pose2d
 
+from photonlibpy import *
+
 import Components.drivetrain
 import Components.vision
 import Components.algae_grabber
 import Components.elevator
+
+VISION_TURN_kP = 0.01
 
 TAG_ORIGIN = Pose2d(-8.774, -4.032, Rotation2d.fromDegrees(0))
 
@@ -92,6 +96,7 @@ class MyRobot(wpilib.TimedRobot):
         # self.arm = Components.arm.Arm()
         self.elevator = Components.elevator.Elevator()
         self.algae_grabber = Components.algae_grabber.AlgaeGrabber()
+        self.cam = PhotonCamera("Logitech,_ink._Webcam_C270")
 
         # self.state = State("disabled")
 
@@ -338,3 +343,17 @@ class MyRobot(wpilib.TimedRobot):
 
     def get_tag_position(self, tag_id: int) -> Pose2d:
         return TAG_LIST[tag_id - 1]
+
+    def algaetracking(self):
+        targetYaw = 0.0
+        targetVisable = False
+        results = self.cam.getAllUnreadResults()
+        if len(results) > 0:
+            result = results[-1]
+            for target in result.getTargets():
+                if target.getFiducialId() == 1:
+                    targetVisable = True
+                    targetYaw = target.getYaw()
+
+        if self.driver1.getAButton() and targetVisable:
+            rot_speed = -1.0 * targetYaw * VISION_TURN_kP * self.drivetrain.rotation_pid
