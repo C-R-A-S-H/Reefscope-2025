@@ -1,10 +1,10 @@
-
 import rev
 import phoenix6
 import wpilib
 
 sigMIN = -7
 sigMAX = 123
+
 
 class Elevator():
     def __init__(self):
@@ -13,43 +13,74 @@ class Elevator():
         self.vortex = rev.SparkFlex(22, rev.SparkFlex.MotorType.kBrushless)
 
         self.startPOS = self.kracken1.get_rotor_position().value_as_double + 20
-        self.maxPOS = self.startPOS + 106#116
-        self.sillyDouble = self.kracken1.get_rotor_position().value_as_double
+        self.maxPOS = self.startPOS + 50
 
-        self.has_been_enabled = False
+        self.snaps = {
+            'A': 48,
+            'B': 40,
+            'Y': 70,
+            'X': 115
+        }  # Assign levels to buttons
+        self.snapLocat = None
+        self.isSnapping = False
+        self.snapThreshold = 3  # Increased threshold to reduce jitter
+        self.minPower = 0.15  # Minimum power to prevent weak movements
+        self.maxPower = 0.35  # Lower max power to reduce overshooting
 
-        self.limit1 = wpilib.DigitalInput(0)
-        self.limit2 = wpilib.DigitalInput(1)
-        self.limit3 = wpilib.DigitalInput(2)
-        self.limit4 = wpilib.DigitalInput(3)
+    def getCurrentPosition(self):
+        return self.kracken1.get_rotor_position().value_as_double
 
     def EleExtend(self, power):
-        power = min(0.5, max(power, -0.5))
-        # Assuming ele is at bottom
+        power = max(-self.maxPower, min(self.maxPower, power))
+        current_pos = self.getCurrentPosition()
 
-        # self.kracken1.set(power)
-        # self.kracken2.set(-power)
-        # compute how far we'll move in a tick
-        rot_vel = self.kracken1.get_rotor_velocity().value_as_double * 0.02
-        rot_pos = self.kracken1.get_rotor_position().value_as_double
-
-        if rot_pos - rot_vel > self.startPOS and power < 0:
-            self.kracken1.set(-abs(power))
-            self.kracken2.set(-abs(power))
-        elif rot_pos + rot_vel < self.maxPOS and power > 0:
-            self.kracken1.set(abs(power))
-            self.kracken2.set(abs(power))
+        # Safety checks for range limits
+        if current_pos > self.startPOS and power < 0:
+            self.kracken1.set(power)
+            self.kracken2.set(power)
+        elif current_pos < self.maxPOS and power > 0:
+            self.kracken1.set(power)
+            self.kracken2.set(power)
         else:
-            self.kracken1.disable()
-            self.kracken2.disable()
+            self.kracken1.set(0)
+            self.kracken2.set(0)
 
-        # request1 = phoenix6.controls.PositionDutyCycle(10, 1, False)
-        # request2 = phoenix6.controls.PositionDutyCycle(10, 1, False)
-        #y
-        # self.kracken1.set_control(request1)
-        # self.kracken2.set_control(request2)
     def CoralEater(self, power):
         self.vortex.set(power)
+
+    def Disable(self):
+        self.kracken1.disable()
+        self.kracken2.disable()
+        self.kracken1.setNeutralMode(phoenix6.signals.NeutralModeValue.COAST)
+        self.kracken2.setNeutralMode(phoenix6.signals.NeutralModeValue.COAST)
+        self.vortex.disable()
+
+    def Enable(self):
+        self.startPOS = self.getCurrentPosition() + 20
+        self.maxPOS = self.startPOS + 106
+        self.kracken1.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
+        self.kracken2.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
+
+    def snapToLevel(self, button):
+        if button in self.snaps:
+            self.snapLocat = self.snaps[button]
+            self.isSnapping = True
+
+    def updateSnap(self):
+        if self.isSnapping:
+            current_pos = round(self.getCurrentPosition())
+            error = self.snapLocat - current_pos
+
+            if abs(error) <= self.snapThreshold:
+                self.EleExtend(0)
+                self.isSnapping = False
+                return
+
+            direction = 1 if error > 0 else -1
+            power = max(self.minPower, min(self.maxPower, abs(error) / 15)) * direction  # Smooth deceleration
+
+            self.EleExtend(power)
+
 
     def getLimit1(self):
         self.limit1.get()
@@ -63,28 +94,6 @@ class Elevator():
     def getLimit4(self):
         self.limit4.get()
 
-    def Disable(self):
-        self.kracken1.disable()
-        self.kracken2.disable()
-        self.kracken1.setNeutralMode(phoenix6.signals.NeutralModeValue.COAST)
-        self.kracken2.setNeutralMode(phoenix6.signals.NeutralModeValue.COAST)
-        self.vortex.disable()
 
     def set_intake_power(self, power):
         self.vortex.set(power/3)
-
-    def Update(self):
-        self.kracken.get_position()
-
-    def Stop(self):
-        self.kracken1.disable()
-        self.kracken2.disable()
-        self.vortex.disable()
-
-    def Enable(self):
-        if not self.has_been_enabled:
-            self.startPOS = self.kracken1.get_rotor_position().value_as_double + 20
-            self.maxPOS = self.startPOS + 106
-        self.has_been_enabled = True
-        self.kracken1.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
-        self.kracken2.setNeutralMode(phoenix6.signals.NeutralModeValue.BRAKE)
