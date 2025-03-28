@@ -219,7 +219,7 @@ class MyRobot(wpilib.TimedRobot):
         self.handle_algae_grabber()
         self.handle_drivetrain()
         self.handleelevator()
-        self.aim()
+        self.handle_webcams()
         # print(self.drivetrain.odometry.getPose())
 
     def handle_algae_grabber(self):
@@ -344,6 +344,9 @@ class MyRobot(wpilib.TimedRobot):
     def get_tag_position(self, tag_id: int) -> Pose2d:
         return TAG_LIST[tag_id - 1]
     
-    def aim(self):
-        if self.driver1.getAButtonPressed() and self.autoaim.targetVisable:
+    def handle_webcams(self):
+        if self.driver1.getAButtonPressed() and self.autoaim.algaeVisable:
             rot_speed = -1.0 * self.autoaim.targetYaw * VISION_TURN_kP * self.drivetrain.set_swerve_module_states
+        
+        if self.autoaim.coralVisable:
+            print("plz intake you have coral")

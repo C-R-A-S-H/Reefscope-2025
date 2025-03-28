@@ -59,7 +59,6 @@ class autoaim():
                 largest_contour = max(contours, key=cv2.contourArea)
                 x, y, w, h = cv2.boundingRect(largest_contour)
                 coralVisable = True
-                coralYaw = self.calculateYaw(x, x + w, frame.shape[1])
 
 
     def calculateYaw(self, startX, endX, frameWidth):
