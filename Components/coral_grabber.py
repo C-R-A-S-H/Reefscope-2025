@@ -55,16 +55,23 @@ class _ElevatorState(Enum):
     """Elevator state machine states. Includes in-motion states so we can stop the motor on arrival."""
 
     ELEVATOR_IDLE = 0
+
+    # Position states
     ELEVATOR_GROUND = auto()
-    ELEVATOR_PICKUP = auto()
     ELEVATOR_L1 = auto()
     ELEVATOR_L2 = auto()
     ELEVATOR_L3 = auto()
+    ELEVATOR_PICKUP = auto()
+
+    # In-motion states
     ELEVATOR_MOVING_GROUND = auto()
     ELEVATOR_MOVING_L1 = auto()
     ELEVATOR_MOVING_L2 = auto()
     ELEVATOR_MOVING_L3 = auto()
     ELEVATOR_MOVING_PICKUP = auto()
+
+    # General in-motion state
+    ELEVATOR_IN_MOTION = auto()
 
 
 class _GrabberState(Enum):
@@ -75,6 +82,9 @@ class _GrabberState(Enum):
     GRABBER_REJECT = auto()
     GRABBER_IN_MOTION = auto()
 
+def within_target(value, target, width):
+    diff = abs(target - value)
+    return diff < width
 
 class CoralGrabber():
     """Combined coral grabber and elevator class, because call stack optimization or some such nonsense."""
@@ -110,6 +120,9 @@ class CoralGrabber():
         # Make sure that the offsets are actually correct
         self.reset_elevator_offsets()
 
+        self.elevator_l_target = phoenix6.controls.PositionDutyCycle(self.elevator_l_offset)
+        self.elevator_r_target = phoenix6.controls.PositionDutyCycle(self.elevator_r_offset)
+
     def update(self):
         if self.disabled:
             self.elevator_l_motor.disable()
@@ -123,32 +136,63 @@ class CoralGrabber():
 
     def _update_elevator(self):
         if self.elevator_state == _ElevatorState.ELEVATOR_GROUND:
-            self.elevator_state = _ElevatorState.ELEVATOR_MOVING_GROUND
+            # self.elevator_state = _ElevatorState.ELEVATOR_MOVING_GROUND
+            self.elevator_state = _ElevatorState.ELEVATOR_IN_MOTION
             target_l, target_r = self._get_motor_targets(ELEVATOR_GROUND_TARGET)
             self._set_elevator_targets(target_l, target_r)
 
         if self.elevator_state == _ElevatorState.ELEVATOR_L1:
-            self.elevator_state = _ElevatorState.ELEVATOR_MOVING_L1
+            # self.elevator_state = _ElevatorState.ELEVATOR_MOVING_L1
+            self.elevator_state = _ElevatorState.ELEVATOR_IN_MOTION
             target_l, target_r = self._get_motor_targets(ELEVATOR_L1_TARGET)
             self._set_elevator_targets(target_l, target_r)
 
         if self.elevator_state == _ElevatorState.ELEVATOR_L2:
-            self.elevator_state = _ElevatorState.ELEVATOR_MOVING_L2
+            # self.elevator_state = _ElevatorState.ELEVATOR_MOVING_L2
+            self.elevator_state = _ElevatorState.ELEVATOR_IN_MOTION
             target_l, target_r = self._get_motor_targets(ELEVATOR_L2_TARGET)
             self._set_elevator_targets(target_l, target_r)
 
         if self.elevator_state == _ElevatorState.ELEVATOR_L3:
-            self.elevator_state = _ElevatorState.ELEVATOR_MOVING_L3
+            # self.elevator_state = _ElevatorState.ELEVATOR_MOVING_L3
+            self.elevator_state = _ElevatorState.ELEVATOR_IN_MOTION
             target_l, target_r = self._get_motor_targets(ELEVATOR_L3_TARGET)
             self._set_elevator_targets(target_l, target_r)
 
         if self.elevator_state == _ElevatorState.ELEVATOR_PICKUP:
-            self.elevator_state = _ElevatorState.ELEVATOR_MOVING_PICKUP
+            # self.elevator_state = _ElevatorState.ELEVATOR_MOVING_PICKUP
+            self.elevator_state = _ElevatorState.ELEVATOR_IN_MOTION
             target_l, target_r = self._get_motor_targets(ELEVATOR_PICKUP_TARGET)
             self._set_elevator_targets(target_l, target_r)
 
-        if self.elevator_state == _ElevatorState.ELEVATOR_MOVING_GROUND:
-            if self.elevator_l_motor.get_rotor_position().value_as_double < self.elevator_l_min + 3:
+        # if self.elevator_state == _ElevatorState.ELEVATOR_MOVING_GROUND:
+        #     if within_target(self.elevator_l_motor.get_rotor_position().value_as_double,
+        #                      self.elevator_l_target.position, 3):
+        #         self.elevator_state = _ElevatorState.ELEVATOR_IDLE
+
+        # if self.elevator_state == _ElevatorState.ELEVATOR_MOVING_PICKUP:
+        #     if within_target(self.elevator_l_motor.get_rotor_position().value_as_double,
+        #                      ELEVATOR_PICKUP_TARGET, 3):
+        #         self.elevator_state = _ElevatorState.ELEVATOR_IDLE
+
+        # if self.elevator_state == _ElevatorState.ELEVATOR_MOVING_L1:
+        #     if within_target(self.elevator_l_motor.get_rotor_position().value_as_double,
+        #                      ELEVATOR_L1_TARGET, 3):
+        #         self.elevator_state = _ElevatorState.ELEVATOR_IDLE
+
+        # if self.elevator_state == _ElevatorState.ELEVATOR_MOVING_L2:
+        #     if within_target(self.elevator_l_motor.get_rotor_position().value_as_double,
+        #                      ELEVATOR_L2_TARGET, 3):
+        #         self.elevator_state = _ElevatorState.ELEVATOR_IDLE
+
+        # if self.elevator_state == _ElevatorState.ELEVATOR_MOVING_L3:
+        #     if within_target(self.elevator_l_motor.get_rotor_position().value_as_double,
+        #                      ELEVATOR_L3_TARGET, 3):
+        #         self.elevator_state = _ElevatorState.ELEVATOR_IDLE
+
+        if self.elevator_state == _ElevatorState.ELEVATOR_IN_MOTION:
+            if within_target(self.elevator_l_motor.get_rotor_position().value_as_double,
+                             self.elevator_l_target.position, 3):
                 self.elevator_state = _ElevatorState.ELEVATOR_IDLE
 
         if self.elevator_state == _ElevatorState.ELEVATOR_IDLE:
@@ -230,11 +274,11 @@ class CoralGrabber():
         return target_l, target_r
 
     def _set_elevator_targets(self, target_l: float, target_r: float):
-        elevator_l_target = phoenix6.controls.PositionDutyCycle(target_l, ELEVATOR_VELOCITY, False)
-        elevator_r_target = phoenix6.controls.PositionDutyCycle(target_r, ELEVATOR_VELOCITY, False)
+        self.elevator_l_target = phoenix6.controls.PositionDutyCycle(target_l, ELEVATOR_VELOCITY, False)
+        self.elevator_r_target = phoenix6.controls.PositionDutyCycle(target_r, ELEVATOR_VELOCITY, False)
 
-        self.elevator_l_motor.set_control(elevator_l_target)
-        self.elevator_r_motor.set_control(elevator_r_target)
+        self.elevator_l_motor.set_control(self.elevator_l_target)
+        self.elevator_r_motor.set_control(self.elevator_r_target)
 
     def elevator_l1(self):
         self.elevator_state = _ElevatorState.ELEVATOR_L1

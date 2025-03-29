@@ -188,6 +188,9 @@ class Drivetrain():
         self.reset_pids()
         self.current_mode = DrivetrainControlMode.POSITION_CONTROL
 
+    def drive_vector_position_relative(self, xrel: float, yrel: float, rot: Rotation2d) -> None:
+        self.drive_vector_position(self.target_pose.X() + xrel, self.target_pose.Y() + yrel, self.target_pose.rotation().rotateBy(rot))
+
     def arrived_at_target(self) -> bool:
         if self.current_mode != DrivetrainControlMode.POSITION_CONTROL:
             return False
@@ -237,3 +240,6 @@ class Drivetrain():
         vel = clamp(vel, MIN_AUTO_VEL, MAX_AUTO_VEL)
         accel = clamp(accel, MIN_AUTO_ACCEL, MAX_AUTO_ACCEL)
         self.translation_pid_constraints = trajectory.TrapezoidProfile.Constraints(vel, accel)
+
+    def get_absolute_position(self) -> Pose2d:
+        return self.odometry.getPose()
