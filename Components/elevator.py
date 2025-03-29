@@ -48,6 +48,11 @@ class Elevator():
     def CoralEater(self, power):
         self.vortex.set(power)
 
+    def Stop(self):
+        self.kracken1.disable()
+        self.kracken2.disable()
+        self.vortex.disable()
+
     def Disable(self):
         self.kracken1.disable()
         self.kracken2.disable()

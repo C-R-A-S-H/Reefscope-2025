@@ -84,7 +84,7 @@ class Drivetrain():
         self.translation_pid_y.setIntegratorRange(-0.5, 0.5)
 
         self.rotation_pid_constraints = trajectory.TrapezoidProfile.Constraints(math.pi, math.tau)
-        self.rotation_pid = wpimath.controller.ProfiledPIDController(4, 1, 0.2,
+        self.rotation_pid = wpimath.controller.ProfiledPIDController(7, 1, 0.2,
                                                                      self.rotation_pid_constraints)
         self.rotation_pid.enableContinuousInput(-math.pi, math.pi)
         self.rotation_pid.setTolerance(0.02)

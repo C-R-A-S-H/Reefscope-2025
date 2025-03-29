@@ -124,8 +124,9 @@ class MyRobot(wpilib.TimedRobot):
         print(self.autonomous_coords)
 
         # print("\n[MyRobot.__init__] Initializing vision...")
-        # self.vision = Components.vision.Vision()
+        self.vision = Components.vision.Vision()
 
+        self.killmepls = False
         print("\nMyRobot.__init__ completed.")
 
     def __del__(self):
@@ -265,11 +266,11 @@ class MyRobot(wpilib.TimedRobot):
     #     # self.drivetrain = self.robotcontainer.drivetrain
 
     def robotPeriodic(self):
-        # try:
-        #     self.vision.poll()
-        #     self.test_vision()
-        # except:
-        #     pass
+        try:
+            self.vision.poll()
+            #self.test_vision()
+        except:
+            pass
         # self.arm.Update()
         # self.claw.Update()
         # self.elevator.Update()
@@ -291,6 +292,7 @@ class MyRobot(wpilib.TimedRobot):
         self.handle_algae_grabber()
         self.handle_drivetrain()
         self.handleelevator()
+        self.handle_apriltag_facing()
         # print(self.drivetrain.odometry.getPose())
 
     def handle_algae_grabber(self):
@@ -352,6 +354,35 @@ class MyRobot(wpilib.TimedRobot):
         # if self.elevator.maxPOS <= self.elevator.kracken1.get_rotor_position().value_as_double <= self.elevator.startPOS:
         self.elevator.EleExtend(-self.driver2.getRightY())
 
+    def handle_apriltag_facing(self):
+        if self.driver1.getRightBumperPressed():
+            self.killmepls = True
+        if self.driver1.getRightBumper():  # Or whichever button you prefer lmao
+            # Get vision data
+            time_since_update, target_id, robot_pose_target = self.vision.get_robot_position_in_target()
+
+            if time_since_update is not None and time_since_update < 0.08 and target_id != -1 and self.killmepls:
+                # Calculate desired angle to face the tag directly
+                self.killmepls = False
+                print(robot_pose_target)
+                current_angle = robot_pose_target.rotation()
+
+                # Since the limelight is on the back, we need to face 180° from the tag
+                desired_angle = current_angle.rotateBy(Rotation2d.fromDegrees(180))
+
+                print(desired_angle)
+
+                # Convert to Rotation2d
+                # desired_rotation = Rotation2d.fromDegrees(desired_angle)
+
+                # Drive to maintain position but rotate to face tag
+                self.drivetrain.drive_vector_position_relative(
+                    0,
+                    0,
+                    desired_angle
+                )
+            return True
+        return False
 
     def handle_drivetrain(self):
         if self.repositioning and self.drivetrain.arrived_at_target():
@@ -359,15 +390,11 @@ class MyRobot(wpilib.TimedRobot):
             self.position_test = False
             print("We've arrived!")
 
-        # if self.driver1.getAButtonPressed():
-        #     self.position_test = True
-        #     self.rotation_track_test = Rotation2d(1, 0)
-        # if self.driver1.getBButtonPressed():
-        #     self.position_test = False
-        #     self.repositioning = False
+        # Check if we're trying to face an AprilTag
+        if self.handle_apriltag_facing():
+            return
 
         if self.driver1.getYButtonPressed():
-            # self.drivetrain.set_wheel_angles(Rotation2d(1, 0))
             self.drivetrain.reset()
             return
 
@@ -378,14 +405,9 @@ class MyRobot(wpilib.TimedRobot):
 
         xspeed = self.driver1.getRightX() * self.slow
         yspeed = self.driver1.getRightY() * self.slow
-
-        # print(xspeed)
-        # print(yspeed)
-
         rot_speed = self.driver1.getLeftX() * math.pi * 2 * self.turn_speed
 
         if self.position_test:
-            # print(self.drivetrain.odometry.getPose())
             if not self.repositioning:
                 self.drivetrain.drive_vector_position(0, 0, Rotation2d(1, 0))
                 self.repositioning = True
@@ -406,11 +428,11 @@ class MyRobot(wpilib.TimedRobot):
         _, target_id, robot_pose_target_space = self.vision.get_robot_position_in_target()
 
         print(f"[MyRobot.test_vision] Time since last update is {time_since_data_update}s, last target_id = {target_id}")
-        print(f"[MyRobot.test_vision] robot_pose_field_space = {robot_pose_field_space}")
-        print(f"[MyRobot.test_vision] robot_pose_target_space = {robot_pose_target_space}")
-        # print(f"[MyRobot.test_vision] angles are {robot_pose_field_space.rotation().degrees()}, {robot_pose_target_space.rotation().degrees()}")
-        print(f"[MyRobot.test_vision] Target pose is {self.get_tag_position(target_id)}")
-        print(f"[MyRobot.test_vision] Relative to corner should be {self.get_robot_from_corner(robot_pose_field_space)}")
+        # print(f"[MyRobot.test_vision] robot_pose_field_space = {robot_pose_field_space}")
+        # print(f"[MyRobot.test_vision] robot_pose_target_space = {robot_pose_target_space}")
+        # # print(f"[MyRobot.test_vision] angles are {robot_pose_field_space.rotation().degrees()}, {robot_pose_target_space.rotation().degrees()}")
+        # print(f"[MyRobot.test_vision] Target pose is {self.get_tag_position(target_id)}")
+        # print(f"[MyRobot.test_vision] Relative to corner should be {self.get_robot_from_corner(robot_pose_field_space)}")
 
     def get_robot_from_corner(self, robot_pose: Pose2d) -> Pose2d:
         return robot_pose.relativeTo(TAG_ORIGIN)
