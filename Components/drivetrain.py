@@ -84,7 +84,7 @@ class Drivetrain():
         self.translation_pid_y.setIntegratorRange(-0.5, 0.5)
 
         self.rotation_pid_constraints = trajectory.TrapezoidProfile.Constraints(math.pi, math.tau)
-        self.rotation_pid = wpimath.controller.ProfiledPIDController(7, 1, 0.2,
+        self.rotation_pid = wpimath.controller.ProfiledPIDController(5, 1, 0.2,
                                                                      self.rotation_pid_constraints)
         self.rotation_pid.enableContinuousInput(-math.pi, math.pi)
         self.rotation_pid.setTolerance(0.02)
@@ -188,9 +188,14 @@ class Drivetrain():
         self.reset_pids()
         self.current_mode = DrivetrainControlMode.POSITION_CONTROL
 
-    def drive_vector_position_relative(self, xrel: float, yrel: float, rot: Rotation2d) -> None:
+    def drive_vector_position_relative(self, xrel: float, yrel: float, rot: Rotation2d, rotabs: bool = False) -> None:
         pose = self.odometry.getPose()
-        self.drive_vector_position(pose.X() + xrel, pose.Y() + yrel, pose.rotation().rotateBy(rot))
+        target_translation = Translation2d(xrel, yrel).rotateAround(Translation2d(0,0), pose.rotation())
+        target_translation = Translation2d(target_translation.X() + pose.X(), target_translation.Y() + pose.Y())
+        if rotabs:
+            self.drive_vector_position(target_translation.X(), target_translation.Y(), rot)
+        else:
+            self.drive_vector_position(target_translation.X(), target_translation.Y(), pose.rotation().rotateBy(rot))
 
     def arrived_at_target(self) -> bool:
         if self.current_mode != DrivetrainControlMode.POSITION_CONTROL:

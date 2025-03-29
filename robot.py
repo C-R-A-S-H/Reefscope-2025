@@ -359,16 +359,17 @@ class MyRobot(wpilib.TimedRobot):
             self.killmepls = True
         if self.driver1.getRightBumper():  # Or whichever button you prefer lmao
             # Get vision data
-            time_since_update, target_id, robot_pose_target = self.vision.get_robot_position_in_target()
+            time_since_update, target_id, robot_pose_target = self.vision.get_target_position_in_robot()
 
             if time_since_update is not None and time_since_update < 0.08 and target_id != -1 and self.killmepls:
                 # Calculate desired angle to face the tag directly
                 self.killmepls = False
                 print(robot_pose_target)
-                current_angle = robot_pose_target.rotation()
+
+                current_angle = Rotation2d(-robot_pose_target.X(), robot_pose_target.Y()).rotateBy(Rotation2d.fromDegrees(180))
 
                 # Since the limelight is on the back, we need to face 180° from the tag
-                desired_angle = current_angle.rotateBy(Rotation2d.fromDegrees(180))
+                desired_angle = current_angle
 
                 print(desired_angle)
 
@@ -376,10 +377,12 @@ class MyRobot(wpilib.TimedRobot):
                 # desired_rotation = Rotation2d.fromDegrees(desired_angle)
 
                 # Drive to maintain position but rotate to face tag
+                self.drivetrain.set_positional_constraints(1, 1)
                 self.drivetrain.drive_vector_position_relative(
-                    0,
-                    0,
-                    desired_angle
+                    (-robot_pose_target.X()) + 1,
+                    -robot_pose_target.Y(),
+                    desired_angle,
+                    False
                 )
             return True
         return False
