@@ -100,15 +100,17 @@ class Vision:
             self.target_relative_estimated_position = Pose3d(target_pose_robot_space[2],
                                                              target_pose_robot_space[0],
                                                              target_pose_robot_space[1],
-                                                             Rotation3d(wpimath.units.degreesToRadians(target_pose_robot_space[3]),
-                                                                        wpimath.units.degreesToRadians(target_pose_robot_space[4]),
-                                                                        wpimath.units.degreesToRadians(target_pose_robot_space[5]))).toPose2d()
+                                                             Rotation3d.fromDegrees(
+                                                                 target_pose_robot_space[5],
+                                                                 target_pose_robot_space[3],
+                                                                 target_pose_robot_space[4])).toPose2d()
             self.robot_in_target_estimated_position = Pose3d(robot_pose_target_space[2],
                                                              robot_pose_target_space[0],
                                                              robot_pose_target_space[1],
-                                                             Rotation3d(wpimath.units.degreesToRadians(robot_pose_target_space[3]),
-                                                                        wpimath.units.degreesToRadians(robot_pose_target_space[4]),
-                                                                        wpimath.units.degreesToRadians(robot_pose_target_space[5]))).toPose2d()
+                                                             Rotation3d.fromDegrees(
+                                                                 robot_pose_target_space[5],
+                                                                 robot_pose_target_space[3],
+                                                                 robot_pose_target_space[4])).toPose2d()
             self.current_target_id = i.fiducial_id
 
     def _update_algae_data(self, parsed_results: limelightresults.GeneralResult):

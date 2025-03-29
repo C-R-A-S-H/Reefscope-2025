@@ -9,7 +9,7 @@ import wpimath.filter
 import wpimath.controller
 
 from wpimath.kinematics import ChassisSpeeds
-from wpimath.geometry import Rotation2d, Pose2d
+from wpimath.geometry import Rotation2d, Pose2d, Translation2d
 
 import Components.drivetrain
 import Components.vision
@@ -361,29 +361,16 @@ class MyRobot(wpilib.TimedRobot):
             # Get vision data
             time_since_update, target_id, robot_pose_target = self.vision.get_target_position_in_robot()
 
+            print(robot_pose_target)
             if time_since_update is not None and time_since_update < 0.08 and target_id != -1 and self.killmepls:
                 # Calculate desired angle to face the tag directly
                 self.killmepls = False
-                print(robot_pose_target)
-
-                current_angle = Rotation2d(-robot_pose_target.X(), robot_pose_target.Y()).rotateBy(Rotation2d.fromDegrees(180))
-
-                # Since the limelight is on the back, we need to face 180° from the tag
-                desired_angle = current_angle
-
-                print(desired_angle)
-
-                # Convert to Rotation2d
-                # desired_rotation = Rotation2d.fromDegrees(desired_angle)
-
-                # Drive to maintain position but rotate to face tag
-                self.drivetrain.set_positional_constraints(1, 1)
-                self.drivetrain.drive_vector_position_relative(
-                    (-robot_pose_target.X()) + 1,
-                    -robot_pose_target.Y(),
-                    desired_angle,
-                    False
-                )
+                target_position = -robot_pose_target.translation()
+                target_rotation = -robot_pose_target.rotation()
+                offset = Translation2d(1, 0).rotateBy(robot_pose_target.rotation())
+                target_position = target_position + offset
+                self.drivetrain.set_positional_constraints(0.5, 2)
+                self.drivetrain.drive_vector_position_relative(target_position.X(), -target_position.Y(), target_rotation)
             return True
         return False
 
@@ -442,3 +429,11 @@ class MyRobot(wpilib.TimedRobot):
 
     def get_tag_position(self, tag_id: int) -> Pose2d:
         return TAG_LIST[tag_id - 1]
+
+    def offset_from_target(self, robot_pose_target: Pose2d):
+        target_position = -robot_pose_target.translation()
+        target_rotation = -robot_pose_target.rotation()
+        offset = Translation2d(1, 0).rotateBy(robot_pose_target.rotation())
+        target_position = target_position + offset
+        self.drivetrain.set_positional_constraints(0.5, 2)
+        self.drivetrain.drive_vector_position_relative(target_position.X(), -target_position.Y(), target_rotation)
