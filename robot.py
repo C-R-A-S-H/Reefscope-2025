@@ -430,10 +430,10 @@ class MyRobot(wpilib.TimedRobot):
     def get_tag_position(self, tag_id: int) -> Pose2d:
         return TAG_LIST[tag_id - 1]
 
-    def offset_from_target(self, robot_pose_target: Pose2d):
+    def offset_from_target(self, robot_pose_target: Pose2d, offset: Translation2d):
         target_position = -robot_pose_target.translation()
         target_rotation = -robot_pose_target.rotation()
-        offset = Translation2d(1, 0).rotateBy(robot_pose_target.rotation())
+        offset = offset.rotateBy(robot_pose_target.rotation())
         target_position = target_position + offset
         self.drivetrain.set_positional_constraints(0.5, 2)
         self.drivetrain.drive_vector_position_relative(target_position.X(), -target_position.Y(), target_rotation)
