@@ -17,6 +17,11 @@ from wpimath.kinematics import SwerveDrive4Kinematics, SwerveModuleState, Chassi
 
 from .swervemodule import SwerveModule
 
+MAX_AUTO_VEL = 4
+MIN_AUTO_VEL = 0.5
+MAX_AUTO_ACCEL = 8
+MIN_AUTO_ACCEL = 0.5
+
 class DrivetrainControlMode(Enum):
     STOP = 0
     VELOCITY_CONTROL = auto()
@@ -57,7 +62,7 @@ class Drivetrain():
 
         self.target_velocity: ChassisSpeeds = ChassisSpeeds(0, 0, 0)
 
-        self.translation_pid_constraints = trajectory.TrapezoidProfile.Constraints(1, 4)
+        self.translation_pid_constraints = trajectory.TrapezoidProfile.Constraints(2, 8)
         self.translation_pid_kP = 4
         self.translation_pid_kI = 1
         self.translation_pid_kD = 0.3
@@ -227,3 +232,8 @@ class Drivetrain():
         self.reset_odometry(xpos, ypos, heading)
         self.reset_pids()
         print(self.odometry.getPose())
+
+    def set_positional_constraints(self, vel: float, accel: float) -> None:
+        vel = clamp(vel, MIN_AUTO_VEL, MAX_AUTO_VEL)
+        accel = clamp(accel, MIN_AUTO_ACCEL, MAX_AUTO_ACCEL)
+        self.translation_pid_constraints = trajectory.TrapezoidProfile.Constraints(vel, accel)
