@@ -189,7 +189,8 @@ class Drivetrain():
         self.current_mode = DrivetrainControlMode.POSITION_CONTROL
 
     def drive_vector_position_relative(self, xrel: float, yrel: float, rot: Rotation2d) -> None:
-        self.drive_vector_position(self.target_pose.X() + xrel, self.target_pose.Y() + yrel, self.target_pose.rotation().rotateBy(rot))
+        pose = self.odometry.getPose()
+        self.drive_vector_position(pose.X() + xrel, pose.Y() + yrel, pose.rotation().rotateBy(rot))
 
     def arrived_at_target(self) -> bool:
         if self.current_mode != DrivetrainControlMode.POSITION_CONTROL:
