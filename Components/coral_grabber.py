@@ -16,9 +16,9 @@ ELEVATOR_SOFT_OFFSET = 15
 
 # Define the constraints for elevator positions.
 # Soft min/max are the points where the elevator will stop in manual control.
-ELEVATOR_MIN = 0
+ELEVATOR_MIN = 4.5
 ELEVATOR_SOFT_MIN = ELEVATOR_MIN + ELEVATOR_SOFT_OFFSET
-ELEVATOR_MAX = 120  # This is a bit conservative for max, but I don't want to throw a chain
+ELEVATOR_MAX = 110  # This is a bit conservative for max, but I don't want to throw a chain
 ELEVATOR_SOFT_MAX = ELEVATOR_MAX - ELEVATOR_SOFT_OFFSET
 
 # Original snap code looked like this:
@@ -36,14 +36,14 @@ self.snaps = {
 # assign the targets to a bunch of constants instead.
 
 # Targets are in units of rotor rotations.
-ELEVATOR_GROUND_TARGET = 0
+ELEVATOR_GROUND_TARGET = 4.5
 ELEVATOR_L1_TARGET = 40
 ELEVATOR_L2_TARGET = 70
-ELEVATOR_L3_TARGET = 115
+ELEVATOR_L3_TARGET = 110
 ELEVATOR_PICKUP_TARGET = 48
 
-# Max elevator velocity, in rotor RPM (I think?), for PositionDutyCycle.
-ELEVATOR_VELOCITY = 3
+# Max elevator velocity, in rotor RPS, for PositionDutyCycle.
+ELEVATOR_VELOCITY = 0.5
 
 
 def clamp(value, min_value, max_value):
@@ -282,6 +282,15 @@ class CoralGrabber():
 
     def elevator_l1(self):
         self.elevator_state = _ElevatorState.ELEVATOR_L1
+
+    def elevator_l2(self):
+        self.elevator_state = _ElevatorState.ELEVATOR_L2
+
+    def elevator_l3(self):
+        self.elevator_state = _ElevatorState.ELEVATOR_L3
+
+    def elevator_pickup(self):
+        self.elevator_state = _ElevatorState.ELEVATOR_PICKUP
 
     def elevator_ground(self):
         self.elevator_state = _ElevatorState.ELEVATOR_GROUND

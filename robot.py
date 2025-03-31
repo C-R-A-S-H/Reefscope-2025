@@ -14,7 +14,9 @@ from wpimath.geometry import Rotation2d, Pose2d, Translation2d
 import Components.drivetrain
 import Components.vision
 import Components.algae_grabber
-import Components.elevator
+#import Components.elevator
+
+import Components.coral_grabber
 
 TAG_ORIGIN = Pose2d(-8.774, -4.032, Rotation2d.fromDegrees(0))
 
@@ -91,8 +93,9 @@ class MyRobot(wpilib.TimedRobot):
         self.drivetrain = Components.drivetrain.Drivetrain()
         # self.claw = Components.claw.Claw()
         # self.arm = Components.arm.Arm()
-        self.elevator = Components.elevator.Elevator()
+        # self.elevator = Components.elevator.Elevator()
 
+        self.coral_grabber = Components.coral_grabber.CoralGrabber()
         self.algae_grabber = Components.algae_grabber.AlgaeGrabber()
 
         # self.state = State("disabled")
@@ -141,7 +144,8 @@ class MyRobot(wpilib.TimedRobot):
         self.drivetrain.stop()
         self.drivetrain.disable()
         self.algae_grabber.disable()
-        self.elevator.Disable()
+        # self.elevator.Disable()
+        self.coral_grabber.disable()
         # self.claw.Disable()
         # self.claw.Stop()
         # self.elevator.Disable()
@@ -153,7 +157,8 @@ class MyRobot(wpilib.TimedRobot):
         self.drivetrain.reset()
         self.drivetrain.enable()
         self.algae_grabber.enable()
-        self.elevator.Enable()
+        # self.elevator.Enable()
+        self.coral_grabber.enable()
 
     def autonomousInit(self):
         self.drivetrain.reset()
@@ -172,6 +177,8 @@ class MyRobot(wpilib.TimedRobot):
         ELEVATOR_INIT_TIME = 0.3
         ELEVATOR_INIT2_TIME = 0.4
         ELEVATOR_RAISE_TIME = 1.05
+        self.drivetrain.stop()
+        return
 
         if self.autonomous_state >= MAX_STATE:
             self.drivetrain.stop()
@@ -279,6 +286,7 @@ class MyRobot(wpilib.TimedRobot):
         except:
             pass
 
+        self.coral_grabber.update()
         self.algae_grabber.update()
 
     def teleopInit(self):
@@ -287,11 +295,28 @@ class MyRobot(wpilib.TimedRobot):
         self.algae_grabber.zero_arm()
         # self.drivetrain.set_robot_location(-3, 0, Rotation2d(-1, 0))
 
+    def handle_coral_grabber(self):
+        if self.driver2.getAButtonPressed():
+            self.coral_grabber.elevator_pickup()
+
+        if self.driver2.getBButtonPressed():
+            self.coral_grabber.elevator_l1()
+
+        if self.driver2.getYButtonPressed():
+            self.coral_grabber.elevator_l2()
+
+        if self.driver2.getXButtonPressed():
+            self.coral_grabber.elevator_l3()
+
+        if self.driver2.getStartButtonPressed():
+            self.coral_grabber.elevator_ground()
+
     def teleopPeriodic(self):
         # self.robotcontainer = RobotContainer()
         self.handle_algae_grabber()
         self.handle_drivetrain()
-        self.handleelevator()
+        # self.handleelevator()
+        self.handle_coral_grabber()
         self.handle_apriltag_facing()
         # print(self.drivetrain.odometry.getPose())
 

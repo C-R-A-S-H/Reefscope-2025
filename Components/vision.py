@@ -2,7 +2,6 @@ import wpimath
 from wpimath.geometry import Pose2d, Pose3d, Rotation2d, Translation2d, Rotation3d
 
 import limelightresults
-import limelightresults
 import limelight
 import time
 import json
