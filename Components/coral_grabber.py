@@ -39,13 +39,13 @@ self.snaps = {
 
 # Targets are in units of rotor rotations.
 ELEVATOR_GROUND_TARGET = 4.5
-ELEVATOR_L1_TARGET = 43
+ELEVATOR_L1_TARGET = 15
 ELEVATOR_L2_TARGET = 73
 ELEVATOR_L3_TARGET = 113
-ELEVATOR_PICKUP_TARGET = 47
+ELEVATOR_PICKUP_TARGET = 46.5
 
 # Max elevator velocity, in rotor RPS, for PositionDutyCycle.
-ELEVATOR_VELOCITY = 0.5
+ELEVATOR_VELOCITY = 0.1
 
 
 def clamp(value, min_value, max_value):
@@ -74,6 +74,9 @@ class _ElevatorState(Enum):
 
     # General in-motion state
     ELEVATOR_IN_MOTION = auto()
+
+    # Position override
+    ELEVATOR_POSITION_OVERRIDE = auto()
 
 
 class _GrabberState(Enum):
@@ -144,6 +147,10 @@ class CoralGrabber():
         self.coral_grabber_switch_oldstate = self.coral_grabber_switch.get()
 
     def _update_elevator(self):
+        if self.coral_grabber_switch.get():
+            self.elevator_l_motor.disable()
+            self.elevator_r_motor.disable()
+            self.elevator_state = _ElevatorState.ELEVATOR_IDLE
         if self.elevator_state == _ElevatorState.ELEVATOR_GROUND:
             # self.elevator_state = _ElevatorState.ELEVATOR_MOVING_GROUND
             self.elevator_state = _ElevatorState.ELEVATOR_IN_MOTION
@@ -209,7 +216,8 @@ class CoralGrabber():
             self.elevator_r_motor.disable()
 
     def _update_grabber(self):
-        # self.coral_grabber_motor.set(self.grabber_setpoint)
+        self.coral_grabber_motor.set(self.grabber_setpoint)
+        return
         if self.grabber_state == _GrabberState.GRABBER_INTAKE:
             self.coral_grabber_motor.set(CORAL_GRABBER_SPEED)
             self.grabber_motion_time = time.perf_counter()
@@ -312,7 +320,7 @@ class CoralGrabber():
         self.elevator_state = _ElevatorState.ELEVATOR_GROUND
 
     def grabber_speed(self, speed):
-        self.grabber_setpoint = clamp(speed, -0.4, 0.4)
+        self.grabber_setpoint = clamp(speed, -0.05, 0.4)
 
     def grabber_intake(self):
         self.grabber_state = _GrabberState.GRABBER_INTAKE

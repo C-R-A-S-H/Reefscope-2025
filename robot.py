@@ -293,6 +293,7 @@ class MyRobot(wpilib.TimedRobot):
         self.slow = 4
         self.turn_speed = 1
         self.algae_grabber.zero_arm()
+        self.field_relative_drive = True
         # self.drivetrain.set_robot_location(-3, 0, Rotation2d(-1, 0))
 
     def handle_coral_grabber(self):
@@ -314,7 +315,7 @@ class MyRobot(wpilib.TimedRobot):
         if self.driver2.getBackButtonPressed():
             self.coral_grabber.grabber_intake()
 
-        # self.coral_grabber.grabber_speed(self.driver2.getLeftY() * 0.1)
+        self.coral_grabber.grabber_speed(self.driver2.getLeftY() * 0.08)
 
     def teleopPeriodic(self):
         # self.robotcontainer = RobotContainer()
@@ -385,14 +386,15 @@ class MyRobot(wpilib.TimedRobot):
         self.elevator.EleExtend(-self.driver2.getRightY())
 
     def handle_apriltag_facing(self):
-        OFFSET = 0.1778
+        OFFSET_R = -0.15
+        OFFSET_L = 0.2
         offset_dist = 0
         if self.driver1.getRightBumperPressed():
             self.killmepls = True
-            offset_dist = -OFFSET
+            offset_dist = OFFSET_R
         if self.driver1.getLeftBumperPressed():
             self.killmepls = True
-            offset_dist = OFFSET
+            offset_dist = OFFSET_L
         if self.driver1.getRightBumper() or self.driver1.getLeftBumper():  # Or whichever button you prefer lmao
             # Get vision data
             time_since_update, target_id, robot_pose_target = self.vision.get_target_position_in_robot()
@@ -401,7 +403,7 @@ class MyRobot(wpilib.TimedRobot):
             if time_since_update is not None and time_since_update < 0.08 and target_id != -1 and self.killmepls:
                 # Calculate desired angle to face the tag directly
                 self.killmepls = False
-                self.offset_from_target(robot_pose_target, Translation2d(0.01, offset_dist))
+                self.offset_from_target(robot_pose_target, Translation2d(0.1, offset_dist))
             return True
         return False
 
@@ -471,5 +473,5 @@ class MyRobot(wpilib.TimedRobot):
         target_rotation = -robot_pose_target.rotation()
         offset = offset.rotateBy(robot_pose_target.rotation())
         target_position = target_position + offset
-        self.drivetrain.set_positional_constraints(0.5, 2)
+        self.drivetrain.set_positional_constraints(1, 4)
         self.drivetrain.drive_vector_position_relative(target_position.X(), -target_position.Y(), target_rotation)
