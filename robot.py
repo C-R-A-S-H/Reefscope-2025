@@ -311,6 +311,11 @@ class MyRobot(wpilib.TimedRobot):
         if self.driver2.getStartButtonPressed():
             self.coral_grabber.elevator_ground()
 
+        if self.driver2.getBackButtonPressed():
+            self.coral_grabber.grabber_intake()
+
+        # self.coral_grabber.grabber_speed(self.driver2.getLeftY() * 0.1)
+
     def teleopPeriodic(self):
         # self.robotcontainer = RobotContainer()
         self.handle_algae_grabber()
@@ -380,9 +385,15 @@ class MyRobot(wpilib.TimedRobot):
         self.elevator.EleExtend(-self.driver2.getRightY())
 
     def handle_apriltag_facing(self):
+        OFFSET = 0.1778
+        offset_dist = 0
         if self.driver1.getRightBumperPressed():
             self.killmepls = True
-        if self.driver1.getRightBumper():  # Or whichever button you prefer lmao
+            offset_dist = -OFFSET
+        if self.driver1.getLeftBumperPressed():
+            self.killmepls = True
+            offset_dist = OFFSET
+        if self.driver1.getRightBumper() or self.driver1.getLeftBumper():  # Or whichever button you prefer lmao
             # Get vision data
             time_since_update, target_id, robot_pose_target = self.vision.get_target_position_in_robot()
 
@@ -390,12 +401,7 @@ class MyRobot(wpilib.TimedRobot):
             if time_since_update is not None and time_since_update < 0.08 and target_id != -1 and self.killmepls:
                 # Calculate desired angle to face the tag directly
                 self.killmepls = False
-                target_position = -robot_pose_target.translation()
-                target_rotation = -robot_pose_target.rotation()
-                offset = Translation2d(1, 0).rotateBy(robot_pose_target.rotation())
-                target_position = target_position + offset
-                self.drivetrain.set_positional_constraints(0.5, 2)
-                self.drivetrain.drive_vector_position_relative(target_position.X(), -target_position.Y(), target_rotation)
+                self.offset_from_target(robot_pose_target, Translation2d(0.01, offset_dist))
             return True
         return False
 
@@ -417,6 +423,11 @@ class MyRobot(wpilib.TimedRobot):
             self.drivetrain.stop()
             self.drivetrain.set_wheel_angles(Rotation2d.fromDegrees(0))
             return
+
+        if self.driver1.getBackButtonPressed():
+            self.field_relative_drive = False
+        elif self.driver1.getStartButtonPressed():
+            self.field_relative_drive = True
 
         xspeed = self.driver1.getRightX() * self.slow
         yspeed = self.driver1.getRightY() * self.slow

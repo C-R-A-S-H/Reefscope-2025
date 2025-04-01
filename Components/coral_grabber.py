@@ -1,5 +1,7 @@
 import phoenix6
 
+import wpilib
+
 import rev
 
 from enum import Enum, auto
@@ -9,8 +11,8 @@ ELEVATOR_L_MOTOR = 20
 ELEVATOR_R_MOTOR = 19
 
 CORAL_GRABBER_MOTOR = 22
-CORAL_GRABBER_SPEED = 0.5
-CORAL_GRABBER_RUNTIME = 0.3
+CORAL_GRABBER_SPEED = 0.07
+CORAL_GRABBER_RUNTIME = 1.5
 
 ELEVATOR_SOFT_OFFSET = 15
 
@@ -18,7 +20,7 @@ ELEVATOR_SOFT_OFFSET = 15
 # Soft min/max are the points where the elevator will stop in manual control.
 ELEVATOR_MIN = 4.5
 ELEVATOR_SOFT_MIN = ELEVATOR_MIN + ELEVATOR_SOFT_OFFSET
-ELEVATOR_MAX = 110  # This is a bit conservative for max, but I don't want to throw a chain
+ELEVATOR_MAX = 113  # This is a bit conservative for max, but I don't want to throw a chain
 ELEVATOR_SOFT_MAX = ELEVATOR_MAX - ELEVATOR_SOFT_OFFSET
 
 # Original snap code looked like this:
@@ -37,10 +39,10 @@ self.snaps = {
 
 # Targets are in units of rotor rotations.
 ELEVATOR_GROUND_TARGET = 4.5
-ELEVATOR_L1_TARGET = 40
-ELEVATOR_L2_TARGET = 70
-ELEVATOR_L3_TARGET = 110
-ELEVATOR_PICKUP_TARGET = 48
+ELEVATOR_L1_TARGET = 43
+ELEVATOR_L2_TARGET = 73
+ELEVATOR_L3_TARGET = 113
+ELEVATOR_PICKUP_TARGET = 47
 
 # Max elevator velocity, in rotor RPS, for PositionDutyCycle.
 ELEVATOR_VELOCITY = 0.5
@@ -95,10 +97,14 @@ class CoralGrabber():
 
         self.coral_grabber_motor = rev.SparkMax(CORAL_GRABBER_MOTOR, rev.SparkLowLevel.MotorType.kBrushless)
 
+        self.coral_grabber_switch = wpilib.DigitalInput(9)
+        self.coral_grabber_switch_oldstate = True
+
         self.disabled = True
 
         self.elevator_state = _ElevatorState.ELEVATOR_IDLE
         self.grabber_state = _GrabberState.GRABBER_IDLE
+        self.grabber_setpoint = 0
 
         self.grabber_motion_time = time.perf_counter()
 
@@ -130,9 +136,12 @@ class CoralGrabber():
             self.coral_grabber_motor.disable()
             self.elevator_state = _ElevatorState.ELEVATOR_IDLE
             self.grabber_state = _GrabberState.GRABBER_IDLE
+            self.grabber_setpoint = 0
+            self.coral_grabber_switch_oldstate = True
             return
-        self._update_elevator()
         self._update_grabber()
+        self._update_elevator()
+        self.coral_grabber_switch_oldstate = self.coral_grabber_switch.get()
 
     def _update_elevator(self):
         if self.elevator_state == _ElevatorState.ELEVATOR_GROUND:
@@ -192,7 +201,7 @@ class CoralGrabber():
 
         if self.elevator_state == _ElevatorState.ELEVATOR_IN_MOTION:
             if within_target(self.elevator_l_motor.get_rotor_position().value_as_double,
-                             self.elevator_l_target.position, 3):
+                             self.elevator_l_target.position, 0.5):
                 self.elevator_state = _ElevatorState.ELEVATOR_IDLE
 
         if self.elevator_state == _ElevatorState.ELEVATOR_IDLE:
@@ -200,17 +209,24 @@ class CoralGrabber():
             self.elevator_r_motor.disable()
 
     def _update_grabber(self):
+        # self.coral_grabber_motor.set(self.grabber_setpoint)
         if self.grabber_state == _GrabberState.GRABBER_INTAKE:
             self.coral_grabber_motor.set(CORAL_GRABBER_SPEED)
             self.grabber_motion_time = time.perf_counter()
             self.grabber_state = _GrabberState.GRABBER_IN_MOTION
 
         if self.grabber_state == _GrabberState.GRABBER_REJECT:
-            self.coral_grabber_motor.set(-CORAL_GRABBER_SPEED)
+            self.coral_grabber_motor.set(CORAL_GRABBER_SPEED)
             self.grabber_motion_time = time.perf_counter()
             self.grabber_state = _GrabberState.GRABBER_IN_MOTION
 
         if self.grabber_state == _GrabberState.GRABBER_IN_MOTION:
+            rising_edge = (not self.coral_grabber_switch.get()) and self.coral_grabber_switch_oldstate
+            self.elevator_state = _ElevatorState.ELEVATOR_IDLE
+            if rising_edge:
+                self.coral_grabber_motor.disable()
+                self.grabber_state = _GrabberState.GRABBER_IDLE
+                print("Hit rising edge, shutting down grabber")
             if time.perf_counter() > self.grabber_motion_time + CORAL_GRABBER_RUNTIME:
                 self.coral_grabber_motor.disable()
                 self.grabber_state = _GrabberState.GRABBER_IDLE
@@ -294,3 +310,12 @@ class CoralGrabber():
 
     def elevator_ground(self):
         self.elevator_state = _ElevatorState.ELEVATOR_GROUND
+
+    def grabber_speed(self, speed):
+        self.grabber_setpoint = clamp(speed, -0.4, 0.4)
+
+    def grabber_intake(self):
+        self.grabber_state = _GrabberState.GRABBER_INTAKE
+
+    def grabber_reject(self):
+        self.grabber_state = _GrabberState.GRABBER_REJECT
