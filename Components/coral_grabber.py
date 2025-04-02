@@ -42,7 +42,7 @@ ELEVATOR_GROUND_TARGET = 4.5
 ELEVATOR_L1_TARGET = 15
 ELEVATOR_L2_TARGET = 73
 ELEVATOR_L3_TARGET = 113
-ELEVATOR_PICKUP_TARGET = 46.5
+ELEVATOR_PICKUP_TARGET = 47
 
 # Max elevator velocity, in rotor RPS, for PositionDutyCycle.
 ELEVATOR_VELOCITY = 0.1
@@ -144,6 +144,8 @@ class CoralGrabber():
             return
         self._update_grabber()
         self._update_elevator()
+        # if not self.coral_grabber_switch.get() and self.coral_grabber_switch_oldstate:
+        #     print("Hit rising edge")
         self.coral_grabber_switch_oldstate = self.coral_grabber_switch.get()
 
     def _update_elevator(self):
@@ -216,8 +218,8 @@ class CoralGrabber():
             self.elevator_r_motor.disable()
 
     def _update_grabber(self):
-        self.coral_grabber_motor.set(self.grabber_setpoint)
-        return
+        # self.coral_grabber_motor.set(self.grabber_setpoint)
+        # return
         if self.grabber_state == _GrabberState.GRABBER_INTAKE:
             self.coral_grabber_motor.set(CORAL_GRABBER_SPEED)
             self.grabber_motion_time = time.perf_counter()
@@ -230,6 +232,7 @@ class CoralGrabber():
 
         if self.grabber_state == _GrabberState.GRABBER_IN_MOTION:
             rising_edge = (not self.coral_grabber_switch.get()) and self.coral_grabber_switch_oldstate
+            rising_edge = rising_edge and (time.perf_counter() - self.grabber_motion_time) > 0.2
             self.elevator_state = _ElevatorState.ELEVATOR_IDLE
             if rising_edge:
                 self.coral_grabber_motor.disable()
