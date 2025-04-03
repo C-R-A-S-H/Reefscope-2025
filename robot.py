@@ -275,6 +275,9 @@ class MyRobot(wpilib.TimedRobot):
         try:
             self.vision.poll()
             #self.test_vision()
+            pose = self.drivetrain.odometry.getPose()
+        wpilib.SmartDashboard.putNumberArray("RobotPose", 
+            [pose.X(), pose.Y(), pose.rotation().radians()])
         except:
             pass
         # self.arm.Update()
