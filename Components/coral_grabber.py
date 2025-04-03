@@ -86,6 +86,7 @@ class _GrabberState(Enum):
     GRABBER_INTAKE = auto()
     GRABBER_REJECT = auto()
     GRABBER_IN_MOTION = auto()
+    GRABBER_MANUAL = auto()
 
 def within_target(value, target, width):
     diff = abs(target - value)
@@ -242,6 +243,9 @@ class CoralGrabber():
                 self.coral_grabber_motor.disable()
                 self.grabber_state = _GrabberState.GRABBER_IDLE
 
+        if self.grabber_state == _GrabberState.GRABBER_MANUAL:
+            self.coral_grabber_motor.set(self.grabber_setpoint)
+
         if self.grabber_state == _GrabberState.GRABBER_IDLE:
             self.coral_grabber_motor.disable()
 
@@ -330,3 +334,12 @@ class CoralGrabber():
 
     def grabber_reject(self):
         self.grabber_state = _GrabberState.GRABBER_REJECT
+
+    def grabber_manual(self):
+        self.grabber_state = _GrabberState.GRABBER_MANUAL
+
+    def grabber_idle(self) -> bool:
+        return self.grabber_state == _GrabberState.GRABBER_IDLE
+
+    def elevator_idle(self) -> bool:
+        return self.elevator_state == _ElevatorState.ELEVATOR_IDLE

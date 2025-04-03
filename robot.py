@@ -162,10 +162,11 @@ class MyRobot(wpilib.TimedRobot):
 
     def autonomousInit(self):
         self.drivetrain.reset()
-        self.autonomous_state = 2
+        self.autonomous_state = 1
         self.temp_auto = False
         self.autonomous_state_started = False
         self.autonomous_in_flight = False
+        self.autonomous_target = Pose2d(0, 0, Rotation2d.fromDegrees(0))
 
     def autonomousExit(self):
         self.autonomous_in_flight = False
@@ -173,12 +174,10 @@ class MyRobot(wpilib.TimedRobot):
         self.drivetrain.disable()
 
     def autonomousPeriodic(self):
-        MAX_STATE = 6
+        MAX_STATE = 7
         ELEVATOR_INIT_TIME = 0.3
         ELEVATOR_INIT2_TIME = 0.4
         ELEVATOR_RAISE_TIME = 1.05
-        self.drivetrain.stop()
-        return
 
         if self.autonomous_state >= MAX_STATE:
             self.drivetrain.stop()
@@ -194,68 +193,68 @@ class MyRobot(wpilib.TimedRobot):
         if self.autonomous_state == 0:
             if not self.autonomous_state_started:
                 self.autonomous_state_started = True
-                self.elevator.EleExtend(0.5)
-                self.auto_last_stage_time = time.perf_counter()
-            else:
-                if time.perf_counter() > self.auto_last_stage_time + ELEVATOR_INIT_TIME:
-                    self.autonomous_state += 1
-                    self.autonomous_state_started = False
-                    self.elevator.Stop()
-
-        if self.autonomous_state == 1:
-            if not self.autonomous_state_started:
-                self.autonomous_state_started = True
-                self.elevator.EleExtend(-0.5)
-                self.auto_last_stage_time = time.perf_counter()
-            else:
-                self.elevator.EleExtend(-0.5)
-                if time.perf_counter() > self.auto_last_stage_time + ELEVATOR_INIT2_TIME:
-                    self.autonomous_state += 1
-                    self.autonomous_state_started = False
-                    self.elevator.Stop()
-
-        if self.autonomous_state == 2:
-            if not self.autonomous_state_started:
-                self.autonomous_state_started = True
-                self.elevator.EleExtend(0.5)
-                self.auto_last_stage_time = time.perf_counter()
-            else:
-                if time.perf_counter() > self.auto_last_stage_time + ELEVATOR_RAISE_TIME:
-                    self.autonomous_state += 1
-                    self.autonomous_state_started = False
-                    self.elevator.Stop()
-
-        if self.autonomous_state == 3:
-            if not self.autonomous_state_started:
-                self.autonomous_state_started = True
-                self.drivetrain.drive_vector_position(-3, 0, Rotation2d.fromDegrees(0))
+                self.drivetrain.drive_vector_position(-1, 0, Rotation2d.fromDegrees(0))
             else:
                 if self.drivetrain.arrived_at_target():
                     self.autonomous_state += 1
                     self.autonomous_state_started = False
+                    return
 
-        if self.autonomous_state == 4:
+        if self.autonomous_state == 1:
             if not self.autonomous_state_started:
                 self.autonomous_state_started = True
-                self.elevator.CoralEater(0.1)
-                self.auto_last_stage_time = time.perf_counter()
+                self.coral_grabber.elevator_l1()
             else:
-                if time.perf_counter() > self.auto_last_stage_time + 3:
+                if self.coral_grabber.elevator_idle():
                     self.autonomous_state += 1
                     self.autonomous_state_started = False
-                    self.elevator.Stop()
+                    return
+
+        if self.autonomous_state == 2:
+            time_since_update, target_id, robot_pose_target = self.vision.get_target_position_in_robot()
+            if time_since_update is not None and time_since_update < 0.08 and target_id != -1:
+                self.autonomous_target = robot_pose_target
+                self.autonomous_state += 1
+
+        if self.autonomous_state == 3:
+            if not self.autonomous_state_started:
+                self.autonomous_state_started = True
+                self.coral_grabber.elevator_l3()
+                self.drivetrain.set_positional_constraints(2, 4)
+                self.offset_from_target(self.autonomous_target, Translation2d(0.8, 0), Rotation2d.fromDegrees(0))
+            else:
+                if self.drivetrain.arrived_at_target() and self.coral_grabber.elevator_idle():
+                    self.autonomous_state += 1
+                    self.autonomous_state_started = False
+                    return
+
+        if self.autonomous_state == 4:
+            time_since_update, target_id, robot_pose_target = self.vision.get_target_position_in_robot()
+            if time_since_update is not None and time_since_update < 0.08 and target_id != -1:
+                self.autonomous_target = robot_pose_target
+                self.autonomous_state += 1
 
         if self.autonomous_state == 5:
             if not self.autonomous_state_started:
                 self.autonomous_state_started = True
-                self.elevator.EleExtend(-0.5)
-                self.auto_last_stage_time = time.perf_counter()
+                self.coral_grabber.elevator_l3()
+                self.drivetrain.set_positional_constraints(0.6, 1.5)
+                self.offset_from_target(self.autonomous_target, Translation2d(0.1, -0.13), Rotation2d.fromDegrees(0))
             else:
-                self.elevator.EleExtend(-0.5)
-                if time.perf_counter() > self.auto_last_stage_time + ELEVATOR_RAISE_TIME:
+                if self.drivetrain.arrived_at_target() and self.coral_grabber.elevator_idle():
                     self.autonomous_state += 1
                     self.autonomous_state_started = False
-                    self.elevator.Stop()
+                    return
+
+        if self.autonomous_state == 6:
+            if not self.autonomous_state_started:
+                self.autonomous_state_started = True
+                self.coral_grabber.grabber_intake()
+            else:
+                if self.coral_grabber.grabber_idle():
+                    self.autonomous_state += 1
+                    self.autonomous_state_started = False
+                    return
 
         # if self.autonomous_state == 6:
         #     if not self.autonomous_state_started:
@@ -403,7 +402,8 @@ class MyRobot(wpilib.TimedRobot):
             if time_since_update is not None and time_since_update < 0.08 and target_id != -1 and self.killmepls:
                 # Calculate desired angle to face the tag directly
                 self.killmepls = False
-                self.offset_from_target(robot_pose_target, Translation2d(0.1, offset_dist))
+                self.drivetrain.set_positional_constraints(1, 4)
+                self.offset_from_target(robot_pose_target, Translation2d(0.1, offset_dist), Rotation2d.fromDegrees(0), False)
             return True
         return False
 
@@ -468,10 +468,12 @@ class MyRobot(wpilib.TimedRobot):
     def get_tag_position(self, tag_id: int) -> Pose2d:
         return TAG_LIST[tag_id - 1]
 
-    def offset_from_target(self, robot_pose_target: Pose2d, offset: Translation2d):
+    def offset_from_target(self, robot_pose_target: Pose2d, offset: Translation2d, rotation: Rotation2d = None, rotabs: bool = True):
         target_position = -robot_pose_target.translation()
         target_rotation = -robot_pose_target.rotation()
         offset = offset.rotateBy(robot_pose_target.rotation())
         target_position = target_position + offset
-        self.drivetrain.set_positional_constraints(1, 4)
-        self.drivetrain.drive_vector_position_relative(target_position.X(), -target_position.Y(), target_rotation)
+        if rotation is not None:
+            self.drivetrain.drive_vector_position_relative(target_position.X(), -target_position.Y(), rotation, rotabs)
+        else:
+            self.drivetrain.drive_vector_position_relative(target_position.X(), -target_position.Y(), target_rotation)

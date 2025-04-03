@@ -64,7 +64,7 @@ class Drivetrain():
 
         self.translation_pid_constraints = trajectory.TrapezoidProfile.Constraints(2, 8)
         self.translation_pid_kP = 5
-        self.translation_pid_kI = 3
+        self.translation_pid_kI = 5
         self.translation_pid_kD = 0.3
         self.translation_pid_x = wpimath.controller.ProfiledPIDController(self.translation_pid_kP,
                                                                           self.translation_pid_kI,
@@ -75,13 +75,13 @@ class Drivetrain():
                                                                           self.translation_pid_kD,
                                                                           self.translation_pid_constraints)
         self.translation_pid_x.disableContinuousInput()
-        self.translation_pid_x.setTolerance(0.03)
-        self.translation_pid_x.setIZone(0.5)
-        self.translation_pid_x.setIntegratorRange(-0.5, 0.5)
+        self.translation_pid_x.setTolerance(0.01)
+        self.translation_pid_x.setIZone(0.3)
+        self.translation_pid_x.setIntegratorRange(-0.7, 0.7)
         self.translation_pid_y.disableContinuousInput()
-        self.translation_pid_y.setTolerance(0.03)
-        self.translation_pid_y.setIZone(0.5)
-        self.translation_pid_y.setIntegratorRange(-0.5, 0.5)
+        self.translation_pid_y.setTolerance(0.01)
+        self.translation_pid_y.setIZone(0.3)
+        self.translation_pid_y.setIntegratorRange(-0.7, 0.7)
 
         self.rotation_pid_constraints = trajectory.TrapezoidProfile.Constraints(math.pi, math.tau)
         self.rotation_pid = wpimath.controller.ProfiledPIDController(5, 3, 0.2,
