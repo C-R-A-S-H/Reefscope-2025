@@ -18,6 +18,10 @@ import Components.algae_grabber
 
 import Components.coral_grabber
 
+DEFAULT_AUTO = "Default"
+LEFT_AUTO = "Left"
+RIGHT_AUTO = "Right"
+
 TAG_ORIGIN = Pose2d(-8.774, -4.032, Rotation2d.fromDegrees(0))
 
 TAG_LIST = [
@@ -86,6 +90,14 @@ class MyRobot(wpilib.TimedRobot):
     def __init__(self) -> None:
         print("\nMyRobot.__init__ executed. Setting up robot...")
         super().__init__()
+        
+        print("\n[MyRobot.__init__] Adding chooser...")
+        self.chooser = wpilib.SendableChooser()
+        self.chooser.setDefaultOption("Default", DEFAULT_AUTO)
+        self.chooser.addOption("Left", LEFT_AUTO)
+        self.chooser.addOption("Right", RIGHT_AUTO)
+        wpilib.SmartDashboard.putData("Auto type", self.chooser)
+        
         print("\n[MyRobot.__init__] Initializing controllers...")
         self.driver1 = wpilib.XboxController(0)
         self.driver2 = wpilib.XboxController(1)
@@ -167,6 +179,19 @@ class MyRobot(wpilib.TimedRobot):
         self.autonomous_state_started = False
         self.autonomous_in_flight = False
         self.autonomous_target = Pose2d(0, 0, Rotation2d.fromDegrees(0))
+        self.autonomous_target_rotation = Rotation2d.fromDegrees(0)
+
+        selected_auto = self.chooser.getSelected()
+        print(f"Starting {selected_auto}...")
+        if selected_auto == LEFT_AUTO:
+            self.autonomous_target_rotation = Rotation2d.fromDegrees(60)
+            self.autonomous_state = 1
+        elif selected_auto == RIGHT_AUTO:
+            self.autonomous_target_rotation = Rotation2d.fromDegrees(-60)
+            self.autonomous_state = 2
+        else:
+            self.autonomous_target_rotation = Rotation2d.fromDegrees(-60)
+            self.autonomous_state = 0
 
     def autonomousExit(self):
         self.autonomous_in_flight = False
@@ -174,7 +199,8 @@ class MyRobot(wpilib.TimedRobot):
         self.drivetrain.disable()
 
     def autonomousPeriodic(self):
-        MAX_STATE = 7
+        MAX_STATE = 9
+        SHARED_AUTO_STATE = 3
         ELEVATOR_INIT_TIME = 0.3
         ELEVATOR_INIT2_TIME = 0.4
         ELEVATOR_RAISE_TIME = 1.05
@@ -190,40 +216,47 @@ class MyRobot(wpilib.TimedRobot):
             print(f"Running stage {self.autonomous_state}...")
             self.autonomous_in_flight = True
 
+
+        # Default
         if self.autonomous_state == 0:
             if not self.autonomous_state_started:
                 self.autonomous_state_started = True
-                self.drivetrain.drive_vector_position(-1, 0, Rotation2d.fromDegrees(0))
+                self.drivetrain.drive_vector_position(-2.2, -1.8, self.autonomous_target_rotation)
             else:
                 if self.drivetrain.arrived_at_target():
-                    self.autonomous_state += 1
+                    self.autonomous_state = SHARED_AUTO_STATE
                     self.autonomous_state_started = False
                     return
 
+        # Left
         if self.autonomous_state == 1:
+            if not self.autonomous_state_started:
+                self.autonomous_state_started = True
+                self.drivetrain.drive_vector_position(-2.2, 0, self.autonomous_target_rotation)
+            else:
+                if self.drivetrain.arrived_at_target():
+                    self.autonomous_state = SHARED_AUTO_STATE
+                    self.autonomous_state_started = False
+                    return
+
+        # Right
+        if self.autonomous_state == 2:
+            if not self.autonomous_state_started:
+                self.autonomous_state_started = True
+                self.drivetrain.drive_vector_position(-2.2, 0, self.autonomous_target_rotation)
+            else:
+                if self.drivetrain.arrived_at_target():
+                    self.autonomous_state = SHARED_AUTO_STATE
+                    self.autonomous_state_started = False
+                    return
+
+        # Shared
+        if self.autonomous_state == 3:
             if not self.autonomous_state_started:
                 self.autonomous_state_started = True
                 self.coral_grabber.elevator_l1()
             else:
                 if self.coral_grabber.elevator_idle():
-                    self.autonomous_state += 1
-                    self.autonomous_state_started = False
-                    return
-
-        if self.autonomous_state == 2:
-            time_since_update, target_id, robot_pose_target = self.vision.get_target_position_in_robot()
-            if time_since_update is not None and time_since_update < 0.08 and target_id != -1:
-                self.autonomous_target = robot_pose_target
-                self.autonomous_state += 1
-
-        if self.autonomous_state == 3:
-            if not self.autonomous_state_started:
-                self.autonomous_state_started = True
-                self.coral_grabber.elevator_l3()
-                self.drivetrain.set_positional_constraints(2, 4)
-                self.offset_from_target(self.autonomous_target, Translation2d(0.8, 0), Rotation2d.fromDegrees(0))
-            else:
-                if self.drivetrain.arrived_at_target() and self.coral_grabber.elevator_idle():
                     self.autonomous_state += 1
                     self.autonomous_state_started = False
                     return
@@ -237,9 +270,9 @@ class MyRobot(wpilib.TimedRobot):
         if self.autonomous_state == 5:
             if not self.autonomous_state_started:
                 self.autonomous_state_started = True
-                self.coral_grabber.elevator_l3()
-                self.drivetrain.set_positional_constraints(0.6, 1.5)
-                self.offset_from_target(self.autonomous_target, Translation2d(0.1, -0.13), Rotation2d.fromDegrees(0))
+                self.coral_grabber.elevator_l2()
+                self.drivetrain.set_positional_constraints(2, 4)
+                self.offset_from_target(self.autonomous_target, Translation2d(0.8, 0), self.autonomous_target_rotation)
             else:
                 if self.drivetrain.arrived_at_target() and self.coral_grabber.elevator_idle():
                     self.autonomous_state += 1
@@ -247,6 +280,24 @@ class MyRobot(wpilib.TimedRobot):
                     return
 
         if self.autonomous_state == 6:
+            time_since_update, target_id, robot_pose_target = self.vision.get_target_position_in_robot()
+            if time_since_update is not None and time_since_update < 0.08 and target_id != -1:
+                self.autonomous_target = robot_pose_target
+                self.autonomous_state += 1
+
+        if self.autonomous_state == 7:
+            if not self.autonomous_state_started:
+                self.autonomous_state_started = True
+                self.coral_grabber.elevator_l2()
+                self.drivetrain.set_positional_constraints(0.6, 1.5)
+                self.offset_from_target(self.autonomous_target, Translation2d(0.1, -0.13), self.autonomous_target_rotation)
+            else:
+                if self.drivetrain.arrived_at_target() and self.coral_grabber.elevator_idle():
+                    self.autonomous_state += 1
+                    self.autonomous_state_started = False
+                    return
+
+        if self.autonomous_state == 8:
             if not self.autonomous_state_started:
                 self.autonomous_state_started = True
                 self.coral_grabber.grabber_intake()
