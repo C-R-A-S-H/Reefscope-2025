@@ -33,6 +33,7 @@ SCALE_Y = HEIGHT / FIELD_WIDTH
 
 # Robot pose storage
 robot_pose = [0, 0, 0]  # x, y, rotation (radians)
+tag_shit = [0, 0, 0, 0]
 pose_lock = threading.Lock()
 
 # NetworkTables callback
@@ -44,7 +45,7 @@ def value_changed(table, key, value, isNew):
 
 # Connect to NetworkTables
 def nt_init():
-    NetworkTables.initialize(server="10.87.88.1")  
+    NetworkTables.initialize(server="10.87.88.2")
     sd = NetworkTables.getTable("SmartDashboard")
     sd.addEntryListener(value_changed)
 
@@ -61,7 +62,7 @@ def draw_field():
         x = tag.X() * SCALE_X
         y = tag.Y() * SCALE_Y
         pygame.draw.circle(screen, BLUE, (int(x), int(y)), 10)
-        font = pygame.font.SysFont(None, 24)
+        font = pygame.font.Font("./assets/fonts/vcf.otf", 24)
         text = font.render(str(i+1), True, WHITE)
         screen.blit(text, (int(x)+15, int(y)-10))
 
@@ -108,7 +109,7 @@ def main():
         
         # Display coordinates
         with pose_lock:
-            font = pygame.font.SysFont(None, 36)
+            font = pygame.font.Font("./assets/fonts/vcf.otf", 36)
             text = font.render(f"X: {robot_pose[0]:.2f}m Y: {robot_pose[1]:.2f}m Rot: {math.degrees(robot_pose[2]):.1f}°", True, WHITE)
             screen.blit(text, (20, 20))
         
