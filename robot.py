@@ -276,10 +276,8 @@ class MyRobot(wpilib.TimedRobot):
             self.vision.poll()
             #self.test_vision()
             pose = self.drivetrain.odometry.getPose()
-            wpilib.SmartDashboard.putNumberArray("RobotPose",
-                                                 [pose.X(), pose.Y(), pose.rotation().radians()])
-            wpilib.SmartDashboard.putNumberArray("tagShit",
-                                                 [self.vision.current_target_id, self.vision.estimated_position])
+            wpilib.SmartDashboard.putNumberArray("RobotPose", [pose.X(), pose.Y(), pose.rotation().radians()])
+            wpilib.SmartDashboard.putNumber("CurrentTagId", self.current_target_id)
         except:
             pass
         # self.arm.Update()
