@@ -42,7 +42,8 @@ ELEVATOR_GROUND_TARGET = 4.5
 ELEVATOR_L1_TARGET = 15
 ELEVATOR_L2_TARGET = 73
 ELEVATOR_L3_TARGET = 113
-ELEVATOR_PICKUP_TARGET = 47
+ELEVATOR_PICKUP_TARGET = 46.5
+ELEVATOR_SWITCH_LIMIT = 48
 
 # Max elevator velocity, in rotor RPS, for PositionDutyCycle.
 ELEVATOR_VELOCITY = 0.1
@@ -106,6 +107,7 @@ class CoralGrabber():
 
         self.disabled = True
 
+        self.disable_motors_on_idle = True
         self.elevator_state = _ElevatorState.ELEVATOR_IDLE
         self.grabber_state = _GrabberState.GRABBER_IDLE
         self.grabber_setpoint = 0
@@ -150,35 +152,36 @@ class CoralGrabber():
         self.coral_grabber_switch_oldstate = self.coral_grabber_switch.get()
 
     def _update_elevator(self):
-        if self.coral_grabber_switch.get():
-            self.elevator_l_motor.disable()
-            self.elevator_r_motor.disable()
-            self.elevator_state = _ElevatorState.ELEVATOR_IDLE
         if self.elevator_state == _ElevatorState.ELEVATOR_GROUND:
+            self.disable_motors_on_idle = True
             # self.elevator_state = _ElevatorState.ELEVATOR_MOVING_GROUND
             self.elevator_state = _ElevatorState.ELEVATOR_IN_MOTION
             target_l, target_r = self._get_motor_targets(ELEVATOR_GROUND_TARGET)
             self._set_elevator_targets(target_l, target_r)
 
         if self.elevator_state == _ElevatorState.ELEVATOR_L1:
+            self.disable_motors_on_idle = True
             # self.elevator_state = _ElevatorState.ELEVATOR_MOVING_L1
             self.elevator_state = _ElevatorState.ELEVATOR_IN_MOTION
             target_l, target_r = self._get_motor_targets(ELEVATOR_L1_TARGET)
             self._set_elevator_targets(target_l, target_r)
 
         if self.elevator_state == _ElevatorState.ELEVATOR_L2:
+            self.disable_motors_on_idle = False
             # self.elevator_state = _ElevatorState.ELEVATOR_MOVING_L2
             self.elevator_state = _ElevatorState.ELEVATOR_IN_MOTION
             target_l, target_r = self._get_motor_targets(ELEVATOR_L2_TARGET)
             self._set_elevator_targets(target_l, target_r)
 
         if self.elevator_state == _ElevatorState.ELEVATOR_L3:
+            self.disable_motors_on_idle = False
             # self.elevator_state = _ElevatorState.ELEVATOR_MOVING_L3
             self.elevator_state = _ElevatorState.ELEVATOR_IN_MOTION
             target_l, target_r = self._get_motor_targets(ELEVATOR_L3_TARGET)
             self._set_elevator_targets(target_l, target_r)
 
         if self.elevator_state == _ElevatorState.ELEVATOR_PICKUP:
+            self.disable_motors_on_idle = False
             # self.elevator_state = _ElevatorState.ELEVATOR_MOVING_PICKUP
             self.elevator_state = _ElevatorState.ELEVATOR_IN_MOTION
             target_l, target_r = self._get_motor_targets(ELEVATOR_PICKUP_TARGET)
@@ -209,9 +212,14 @@ class CoralGrabber():
         #                      ELEVATOR_L3_TARGET, 3):
         #         self.elevator_state = _ElevatorState.ELEVATOR_IDLE
 
+        if self.coral_grabber_switch.get() and self.elevator_l_target.position > ELEVATOR_SWITCH_LIMIT:
+            self.elevator_l_motor.disable()
+            self.elevator_r_motor.disable()
+            self.elevator_state = _ElevatorState.ELEVATOR_IDLE
+        
         if self.elevator_state == _ElevatorState.ELEVATOR_IN_MOTION:
             if within_target(self.elevator_l_motor.get_rotor_position().value_as_double,
-                             self.elevator_l_target.position, 0.5):
+                             self.elevator_l_target.position, 0.25) and self.disable_motors_on_idle:
                 self.elevator_state = _ElevatorState.ELEVATOR_IDLE
 
         if self.elevator_state == _ElevatorState.ELEVATOR_IDLE:
@@ -290,6 +298,7 @@ class CoralGrabber():
         self.elevator_l_motor.disable()
         self.elevator_r_motor.disable()
         self.coral_grabber_motor.disable()
+        self.grabber_setpoint = 0
 
         # Set the neutral mode to coast so the elevator can be reset by hand.
         self.elevator_l_motor.setNeutralMode(phoenix6.signals.NeutralModeValue.COAST)
@@ -343,3 +352,12 @@ class CoralGrabber():
 
     def elevator_idle(self) -> bool:
         return self.elevator_state == _ElevatorState.ELEVATOR_IDLE
+
+    def elevator_arrived(self) -> bool:
+        return within_target(self.elevator_l_motor.get_rotor_position().value_as_double,
+                             self.elevator_l_target.position, 0.25)
+
+    def stop(self) -> bool:
+        self.elevator_state = _ElevatorState.ELEVATOR_IDLE
+        self.grabber_state = _GrabberState.GRABBER_IDLE
+        self.grabber_setpoint = 0

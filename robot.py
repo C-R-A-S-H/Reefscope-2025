@@ -128,6 +128,7 @@ class MyRobot(wpilib.TimedRobot):
         print("\n[MyRobot.__init__] Setting autonomous_state to 0...")
         self.autonomous_state = 0
         self.temp_auto = False
+        self.realigned = False
         print("\n[MyRobot.__init__] Marking autonomous as not in flight...")
         self.autonomous_in_flight = False  # Make sure we don't accidentally stage immediately after startup
         self.autonomous_state_started = False
@@ -157,6 +158,7 @@ class MyRobot(wpilib.TimedRobot):
         self.drivetrain.disable()
         self.algae_grabber.disable()
         # self.elevator.Disable()
+        self.coral_grabber.stop()
         self.coral_grabber.disable()
         # self.claw.Disable()
         # self.claw.Stop()
@@ -166,7 +168,6 @@ class MyRobot(wpilib.TimedRobot):
         # self.arm.Stop()
 
     def disabledExit(self):
-        self.drivetrain.reset()
         self.drivetrain.enable()
         self.algae_grabber.enable()
         # self.elevator.Enable()
@@ -174,12 +175,17 @@ class MyRobot(wpilib.TimedRobot):
 
     def autonomousInit(self):
         self.drivetrain.reset()
+        # self.drivetrain.set_robot_location(0, 0, Rotation2d.fromDegrees(0))
+        self.realigned = True
         self.autonomous_state = 1
         self.temp_auto = False
         self.autonomous_state_started = False
         self.autonomous_in_flight = False
         self.autonomous_target = Pose2d(0, 0, Rotation2d.fromDegrees(0))
         self.autonomous_target_rotation = Rotation2d.fromDegrees(0)
+        self.auto_time = 0
+        self.coral_grabber.stop()
+        self.coral_grabber.grabber_manual()
 
         selected_auto = self.chooser.getSelected()
         print(f"Starting {selected_auto}...")
@@ -209,6 +215,7 @@ class MyRobot(wpilib.TimedRobot):
             self.drivetrain.stop()
             if self.autonomous_in_flight:
                 print("Done")
+                self.coral_grabber.stop()
             self.autonomous_in_flight = False
             return
 
@@ -254,9 +261,9 @@ class MyRobot(wpilib.TimedRobot):
         if self.autonomous_state == 3:
             if not self.autonomous_state_started:
                 self.autonomous_state_started = True
-                self.coral_grabber.elevator_l1()
+                self.coral_grabber.elevator_l2()
             else:
-                if self.coral_grabber.elevator_idle():
+                if self.coral_grabber.elevator_arrived():
                     self.autonomous_state += 1
                     self.autonomous_state_started = False
                     return
@@ -274,7 +281,7 @@ class MyRobot(wpilib.TimedRobot):
                 self.drivetrain.set_positional_constraints(2, 4)
                 self.offset_from_target(self.autonomous_target, Translation2d(0.8, 0), self.autonomous_target_rotation)
             else:
-                if self.drivetrain.arrived_at_target() and self.coral_grabber.elevator_idle():
+                if self.drivetrain.arrived_at_target() and self.coral_grabber.elevator_arrived():
                     self.autonomous_state += 1
                     self.autonomous_state_started = False
                     return
@@ -290,9 +297,9 @@ class MyRobot(wpilib.TimedRobot):
                 self.autonomous_state_started = True
                 self.coral_grabber.elevator_l2()
                 self.drivetrain.set_positional_constraints(0.6, 1.5)
-                self.offset_from_target(self.autonomous_target, Translation2d(0.1, -0.13), self.autonomous_target_rotation)
+                self.offset_from_target(self.autonomous_target, Translation2d(0.096, -0.15), self.autonomous_target_rotation)
             else:
-                if self.drivetrain.arrived_at_target() and self.coral_grabber.elevator_idle():
+                if self.drivetrain.arrived_at_target() and self.coral_grabber.elevator_arrived():
                     self.autonomous_state += 1
                     self.autonomous_state_started = False
                     return
@@ -300,11 +307,13 @@ class MyRobot(wpilib.TimedRobot):
         if self.autonomous_state == 8:
             if not self.autonomous_state_started:
                 self.autonomous_state_started = True
-                self.coral_grabber.grabber_intake()
+                self.coral_grabber.grabber_speed(0.2)
+                self.auto_time = time.perf_counter()
             else:
-                if self.coral_grabber.grabber_idle():
+                if time.perf_counter() > self.auto_time + 3:
                     self.autonomous_state += 1
                     self.autonomous_state_started = False
+                    self.coral_grabber.stop()
                     return
 
         # if self.autonomous_state == 6:
@@ -344,6 +353,10 @@ class MyRobot(wpilib.TimedRobot):
         self.turn_speed = 1
         self.algae_grabber.zero_arm()
         self.field_relative_drive = True
+        self.coral_grabber.grabber_manual()
+        if not self.realigned:
+            self.drivetrain.reset()
+            self.realigned = True
         # self.drivetrain.set_robot_location(-3, 0, Rotation2d(-1, 0))
 
     def handle_coral_grabber(self):
@@ -365,7 +378,10 @@ class MyRobot(wpilib.TimedRobot):
         if self.driver2.getBackButtonPressed():
             self.coral_grabber.grabber_intake()
 
-        self.coral_grabber.grabber_speed(self.driver2.getLeftY() * 0.08)
+        if self.driver2.getLeftStickButtonPressed():
+            self.coral_grabber.grabber_manual()
+
+        self.coral_grabber.grabber_speed(self.driver2.getLeftY() * 0.1)
 
     def teleopPeriodic(self):
         # self.robotcontainer = RobotContainer()
@@ -437,7 +453,7 @@ class MyRobot(wpilib.TimedRobot):
 
     def handle_apriltag_facing(self):
         OFFSET_R = -0.15
-        OFFSET_L = 0.2
+        OFFSET_L = 0.15
         offset_dist = 0
         if self.driver1.getRightBumperPressed():
             self.killmepls = True
@@ -454,7 +470,7 @@ class MyRobot(wpilib.TimedRobot):
                 # Calculate desired angle to face the tag directly
                 self.killmepls = False
                 self.drivetrain.set_positional_constraints(1, 4)
-                self.offset_from_target(robot_pose_target, Translation2d(0.1, offset_dist), Rotation2d.fromDegrees(0), False)
+                self.offset_from_target(robot_pose_target, Translation2d(0.08, offset_dist), Rotation2d.fromDegrees(0), False)
             return True
         return False
 
@@ -521,7 +537,7 @@ class MyRobot(wpilib.TimedRobot):
 
     def offset_from_target(self, robot_pose_target: Pose2d, offset: Translation2d, rotation: Rotation2d = None, rotabs: bool = True):
         target_position = -robot_pose_target.translation()
-        target_rotation = -robot_pose_target.rotation()
+        target_rotation = robot_pose_target.rotation()
         offset = offset.rotateBy(robot_pose_target.rotation())
         target_position = target_position + offset
         if rotation is not None:

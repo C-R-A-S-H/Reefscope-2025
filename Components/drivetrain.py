@@ -51,7 +51,7 @@ class Drivetrain():
                                              self.get_swerve_module_positions(),
                                              Pose2d(0, 0, 0))
 
-        self.gyro = AHRS(AHRS.NavXComType.kMXP_SPI, 50)
+        self.gyro = AHRS(AHRS.NavXComType.kMXP_SPI, 200)
 
         self.gyro.enableLogging(True)
         self.gyro.reset()
@@ -75,11 +75,11 @@ class Drivetrain():
                                                                           self.translation_pid_kD,
                                                                           self.translation_pid_constraints)
         self.translation_pid_x.disableContinuousInput()
-        self.translation_pid_x.setTolerance(0.01)
+        self.translation_pid_x.setTolerance(0.02)
         self.translation_pid_x.setIZone(0.3)
         self.translation_pid_x.setIntegratorRange(-0.7, 0.7)
         self.translation_pid_y.disableContinuousInput()
-        self.translation_pid_y.setTolerance(0.01)
+        self.translation_pid_y.setTolerance(0.02)
         self.translation_pid_y.setIZone(0.3)
         self.translation_pid_y.setIntegratorRange(-0.7, 0.7)
 
@@ -122,6 +122,9 @@ class Drivetrain():
     def update(self):
         self.odometry.update(self.gyro.getRotation2d(), self.get_swerve_module_positions())
 
+        current_pose = self.odometry.getPose()
+        # print(f"pose: {current_pose.X()}, {current_pose.Y()}, {current_pose.rotation().degrees()}")
+        # print(f"raw gyro: {self.gyro.getYaw()}")
         if self.current_mode == DrivetrainControlMode.STOP:
             self.front_left.stop()
             self.front_right.stop()
@@ -140,7 +143,6 @@ class Drivetrain():
 
         # test_position = self.front_right.get_position()
         # print(f"front right position: {test_position.distance}, {test_position.angle.degrees()}")
-        # print(f"pose: {current_pose.X()}, {current_pose.Y()}, {current_pose.rotation().degrees()}")
         # test_position = self.front_right.get_position()
         # print(f"{test_position.distance}, {test_position.angle.degrees()}")
 
@@ -220,7 +222,7 @@ class Drivetrain():
     def reset_gyro(self):
         self.gyro.zeroYaw()
 
-    def reset_odometry(self, xpos: float = 0, ypos: float = 0, heading: Rotation2d = Rotation2d(1, 0)):
+    def reset_odometry(self, xpos: float = 0, ypos: float = 0, heading: Rotation2d = Rotation2d.fromDegrees(0)):
         self.front_left.reset_distance()
         self.front_right.reset_distance()
         self.back_left.reset_distance()
@@ -231,6 +233,7 @@ class Drivetrain():
     def reset(self):
         self.reset_gyro()
         self.reset_odometry()
+        self.reset_pids()
 
     def reset_pids(self):
         self.translation_pid_x.reset(self.odometry.getPose().X())
