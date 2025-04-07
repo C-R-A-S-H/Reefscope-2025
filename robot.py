@@ -21,6 +21,7 @@ import Components.coral_grabber
 DEFAULT_AUTO = "Default"
 LEFT_AUTO = "Left"
 RIGHT_AUTO = "Right"
+DONTUSE_AUTO = "DontUse"
 
 TAG_ORIGIN = Pose2d(-8.774, -4.032, Rotation2d.fromDegrees(0))
 
@@ -96,6 +97,7 @@ class MyRobot(wpilib.TimedRobot):
         self.chooser.setDefaultOption("Default", DEFAULT_AUTO)
         self.chooser.addOption("Left", LEFT_AUTO)
         self.chooser.addOption("Right", RIGHT_AUTO)
+        self.chooser.addOption("Don't use, testing", DONTUSE_AUTO)
         wpilib.SmartDashboard.putData("Auto type", self.chooser)
         
         print("\n[MyRobot.__init__] Initializing controllers...")
@@ -195,6 +197,10 @@ class MyRobot(wpilib.TimedRobot):
         elif selected_auto == RIGHT_AUTO:
             self.autonomous_target_rotation = Rotation2d.fromDegrees(-60)
             self.autonomous_state = 2
+        elif selected_auto == DONTUSE_AUTO:
+            self.autonomous_target_rotation = Rotation2d.fromDegrees(0)
+            self.autonomous_state = 6
+            self.coral_grabber.elevator_l2()
         else:
             self.autonomous_target_rotation = Rotation2d.fromDegrees(-60)
             self.autonomous_state = 0
@@ -297,7 +303,7 @@ class MyRobot(wpilib.TimedRobot):
                 self.autonomous_state_started = True
                 self.coral_grabber.elevator_l2()
                 self.drivetrain.set_positional_constraints(0.6, 1.5)
-                self.offset_from_target(self.autonomous_target, Translation2d(0.096, -0.15), self.autonomous_target_rotation)
+                self.offset_from_target(self.autonomous_target, Translation2d(0.096, -0.17), self.autonomous_target_rotation)
             else:
                 if self.drivetrain.arrived_at_target() and self.coral_grabber.elevator_arrived():
                     self.autonomous_state += 1
@@ -452,8 +458,8 @@ class MyRobot(wpilib.TimedRobot):
         self.elevator.EleExtend(-self.driver2.getRightY())
 
     def handle_apriltag_facing(self):
-        OFFSET_R = -0.15
-        OFFSET_L = 0.15
+        OFFSET_R = -0.16
+        OFFSET_L = 0.17
         offset_dist = 0
         if self.driver1.getRightBumperPressed():
             self.killmepls = True

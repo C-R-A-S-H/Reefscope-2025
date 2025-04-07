@@ -75,11 +75,11 @@ class Drivetrain():
                                                                           self.translation_pid_kD,
                                                                           self.translation_pid_constraints)
         self.translation_pid_x.disableContinuousInput()
-        self.translation_pid_x.setTolerance(0.02)
+        self.translation_pid_x.setTolerance(0.01)
         self.translation_pid_x.setIZone(0.3)
         self.translation_pid_x.setIntegratorRange(-0.7, 0.7)
         self.translation_pid_y.disableContinuousInput()
-        self.translation_pid_y.setTolerance(0.02)
+        self.translation_pid_y.setTolerance(0.01)
         self.translation_pid_y.setIZone(0.3)
         self.translation_pid_y.setIntegratorRange(-0.7, 0.7)
 
